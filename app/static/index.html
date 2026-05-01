@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>链上刷量统计</title>
+<link rel="icon" type="image/svg+xml" href="/static/icon.svg">
+<style>
+:root{--bg:#0d1117;--sidebar:#010409;--card:#161b22;--card2:#1c2128;--border:#30363d;--text:#e6edf3;--muted:#8b949e;--muted2:#6e7681;--pri:#00d4aa;--pri2:#00b894;--pri-glow:rgba(0,212,170,.12);--danger:#f85149;--success:#3fb950;--warning:#d29922;--info:#388bfd}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI","PingFang SC",system-ui,sans-serif;display:flex;min-height:100vh;font-size:14px}
+.sidebar{width:220px;min-height:100vh;background:var(--sidebar);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;z-index:100}
+.sidebar-logo{padding:20px 16px 16px;border-bottom:1px solid var(--border)}
+.sidebar-logo h1{font-size:15px;font-weight:700;color:var(--pri);letter-spacing:.5px}
+.sidebar-logo p{font-size:11px;color:var(--muted);margin-top:3px}
+.sidebar-nav{padding:12px 8px;flex:1}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;cursor:pointer;color:var(--muted);font-size:13px;font-weight:500;transition:all .15s;margin-bottom:2px;border:1px solid transparent;user-select:none}
+.nav-item:hover{background:var(--card);color:var(--text)}
+.nav-item.active{background:var(--pri-glow);color:var(--pri);border-color:rgba(0,212,170,.2)}
+.sidebar-footer{padding:12px 16px;border-top:1px solid var(--border);font-size:11px;color:var(--muted2)}
+.main{margin-left:220px;flex:1;padding:24px;min-height:100vh}
+.panel{display:none}.panel.active{display:block}
+.page-header{margin-bottom:20px}
+.page-header h2{font-size:20px;font-weight:700}
+.page-header p{font-size:13px;color:var(--muted);margin-top:4px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-top:16px}
+.card:first-child{margin-top:0}
+.card-title{font-size:13px;font-weight:600;color:var(--muted);margin-bottom:16px;text-transform:uppercase;letter-spacing:.6px;display:flex;align-items:center;gap:8px}
+.card-title::before{content:"";width:3px;height:13px;background:var(--pri);border-radius:2px;flex-shrink:0}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.form-group{display:flex;flex-direction:column;gap:5px}
+.form-group.full{grid-column:1/-1}
+.form-label{font-size:11px;color:var(--muted);font-weight:600;letter-spacing:.4px;text-transform:uppercase}
+input,select{background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:9px 12px;font-size:13px;width:100%;transition:border-color .15s;outline:none}
+input:focus,select:focus{border-color:var(--pri);box-shadow:0 0 0 3px var(--pri-glow)}
+input::placeholder{color:var(--muted2)}
+select option{background:var(--card)}
+.btn{border:none;border-radius:8px;padding:9px 16px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-primary{background:var(--pri);color:#000}.btn-primary:hover:not(:disabled){background:var(--pri2)}
+.btn-secondary{background:var(--card2);color:var(--text);border:1px solid var(--border)}.btn-secondary:hover:not(:disabled){border-color:var(--muted2)}
+.btn-danger{background:rgba(248,81,73,.12);color:var(--danger);border:1px solid rgba(248,81,73,.25)}.btn-danger:hover:not(:disabled){background:rgba(248,81,73,.22)}
+.btn-sm{padding:5px 10px;font-size:12px}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.badge{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:3px 10px;font-size:11px;font-weight:600}
+.badge::before{content:"";width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0}
+.badge-running{background:rgba(56,139,253,.15);color:var(--info)}
+.badge-completed{background:rgba(63,185,80,.15);color:var(--success)}
+.badge-failed{background:rgba(248,81,73,.15);color:var(--danger)}
+.badge-canceled{background:rgba(139,148,158,.15);color:var(--muted)}
+.progress-wrap{height:5px;border-radius:999px;background:var(--card2);overflow:hidden;margin-top:10px}
+.progress-bar{height:100%;background:linear-gradient(90deg,var(--pri),var(--info));transition:width .3s ease;border-radius:999px}
+.progress-info{display:flex;justify-content:space-between;align-items:center}
+.progress-info span{font-size:12px;color:var(--muted)}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:14px}
+.kpi-card{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px 14px}
+.kpi-label{font-size:11px;color:var(--muted);margin-bottom:6px;letter-spacing:.3px}
+.kpi-value{font-size:17px;font-weight:700;font-variant-numeric:tabular-nums;word-break:break-all}
+.kpi-value.hi{color:var(--pri)}
+.table-wrap{overflow-x:auto;margin-top:12px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{padding:8px 10px;text-align:left;color:var(--muted);font-weight:600;font-size:11px;letter-spacing:.5px;border-bottom:1px solid var(--border);white-space:nowrap;text-transform:uppercase}
+td{padding:9px 10px;border-bottom:1px solid rgba(48,54,61,.5);vertical-align:top}
+tr:hover td{background:var(--card2)}
+tr.selected td{background:var(--pri-glow)}
+.mono{font-family:"Consolas","Courier New",monospace;font-size:11px;color:var(--muted)}
+.tr-section{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px;margin-top:4px}
+.tr-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.tr-header span{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+.time-range-row,.append-range-row{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end;margin-bottom:8px}
+.result-text{font-size:12px;color:var(--muted);margin-top:8px;min-height:16px;line-height:1.5}
+details.range-detail{border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:6px}
+details.range-detail summary{padding:9px 14px;cursor:pointer;font-size:12px;font-weight:600;background:var(--bg);list-style:none;display:flex;align-items:center;gap:6px}
+details.range-detail summary::-webkit-details-marker{display:none}
+details.range-detail summary::before{content:"▶";font-size:9px;color:var(--muted);transition:transform .15s;flex-shrink:0}
+details.range-detail[open] summary::before{transform:rotate(90deg)}
+details.range-detail .range-body{padding:12px 14px}
+.empty-state{text-align:center;padding:32px;color:var(--muted);font-size:13px;border:1px dashed var(--border);border-radius:10px}
+.pill{display:inline-block;background:var(--card2);border:1px solid var(--border);border-radius:999px;padding:2px 8px;font-size:11px;color:var(--muted)}
+.filter-row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px}
+.filter-row .form-group{min-width:160px}
+.sub-box{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px;margin-top:12px}
+.sub-box-title{font-size:11px;font-weight:600;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:.4px}
+@media(max-width:900px){.main{margin-left:0;padding:16px}.sidebar{display:none}}
+</style>
+</head>
+<body>
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <h1>⛓ 链上统计</h1>
+    <p>仅统计，不下单</p>
+  </div>
+  <div class="sidebar-nav">
+    <div class="nav-item active" data-panel="create">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8 2a.75.75 0 0 1 .75.75v4.5h4.5a.75.75 0 0 1 0 1.5h-4.5v4.5a.75.75 0 0 1-1.5 0v-4.5h-4.5a.75.75 0 0 1 0-1.5h4.5v-4.5A.75.75 0 0 1 8 2Z"/></svg>
+      新建任务
+    </div>
+    <div class="nav-item" data-panel="list">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M2 2.75A.75.75 0 0 1 2.75 2h10.5a.75.75 0 0 1 0 1.5H2.75A.75.75 0 0 1 2 2.75Zm0 5A.75.75 0 0 1 2.75 7h10.5a.75.75 0 0 1 0 1.5H2.75A.75.75 0 0 1 2 7Zm0 5a.75.75 0 0 1 .75-.75h10.5a.75.75 0 0 1 0 1.5H2.75A.75.75 0 0 1 2 12.75Z"/></svg>
+      任务列表
+    </div>
+    <div class="nav-item" data-panel="detail">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M0 1.75A.75.75 0 0 1 .75 1h4.253c1.227 0 2.317.59 3 1.501A3.743 3.743 0 0 1 11.006 1h4.245a.75.75 0 0 1 .75.75v10.5a.75.75 0 0 1-.75.75h-4.507a2.25 2.25 0 0 0-1.591.659l-.622.621a.75.75 0 0 1-1.06 0l-.622-.621A2.25 2.25 0 0 0 5.258 13H.75a.75.75 0 0 1-.75-.75Zm7.251 10.324.004-5.073-.002-2.253A2.25 2.25 0 0 0 5.003 2.5H1.5v9h3.757a3.75 3.75 0 0 1 1.994.574ZM8.755 4.75l-.004 7.322a3.752 3.752 0 0 1 1.992-.572H14.5v-9h-3.495a2.25 2.25 0 0 0-2.25 2.25Z"/></svg>
+      任务详情
+    </div>
+  </div>
+  <div class="sidebar-footer">链上刷量统计机器人 v1</div>
+</nav>
+<main class="main">
+
+<!-- Panel: 新建任务 -->
+<div class="panel active" id="panel-create">
+  <div class="page-header"><h2>新建统计任务</h2><p>支持多时间段、多钱包、Cycle 合并统计</p></div>
+  <div class="card">
+    <div class="card-title">任务参数</div>
+    <form id="task-form">
+      <div class="form-grid">
+        <div class="form-group"><label class="form-label">统计链</label><select name="chain"><option value="bsc">BSC</option><option value="base">Base</option><option value="arbitrum">Arbitrum</option><option value="ethereum">Ethereum</option></select></div>
+        <div class="form-group"><label class="form-label">任务名称（可选）</label><input name="taskName" placeholder="例如：2月分段统计"></div>
+        <div class="form-group"><label class="form-label">文件夹（可选）</label><select name="folderId" id="form-folder-select"><option value="">未分类</option></select></div>
+        <div class="form-group"><label class="form-label">基准币种</label><select name="baseToken"><option value="USDT">USDT</option><option value="USDC">USDC</option></select></div>
+        <div class="form-group full"><label class="form-label">钱包地址（逗号分隔）</label><input name="wallets" value="0x1111111111111111111111111111111111111111" required></div>
+        <div class="form-group full"><label class="form-label">目标代币合约（Token CA）</label><input name="token" value="0xtoken000000000000000000000000000000000001" required></div>
+        <div class="form-group"><label class="form-label">Boost 倍数</label><input name="boostMultiplier" value="0.85" step="0.0001" required></div>
+        <div class="form-group"><label class="form-label">尾差容忍值（Epsilon）</label><input name="epsilon" value="0.0001" step="0.0001" required></div>
+        <div class="form-group"><label class="form-label">配对超时（分钟）</label><input name="pairTimeoutMinutes" value="30" step="1" required></div>
+        <div class="form-group"><label class="form-label">实际 Boost（可空）</label><input name="actualBoostVolume" step="0.0001" placeholder="例如 18719.08"></div>
+        <div class="form-group full">
+          <div class="tr-section">
+            <div class="tr-header"><span>时间段（UTC+8）</span><button id="add-time-range" class="btn btn-secondary btn-sm" type="button">+ 增加时间段</button></div>
+            <div id="time-range-list"></div>
+            <p style="font-size:11px;color:var(--muted);margin-top:6px">可添加多个时间段，提交后在同一个任务内统计。</p>
+          </div>
+        </div>
+        <div class="form-group full">
+          <button type="submit" class="btn btn-primary">开始统计</button>
+          <p id="create-result" class="result-text"></p>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Panel: 任务列表 -->
+<div class="panel" id="panel-list">
+  <div class="page-header"><h2>任务列表</h2><p>点击任务行跳转到详情</p></div>
+  <div class="card">
+    <div class="filter-row">
+      <div class="form-group"><label class="form-label">文件夹筛选</label><select id="list-folder-filter"><option value="">全部</option><option value="none">未分类</option></select></div>
+      <div class="form-group"><label class="form-label">新建文件夹</label><input id="new-folder-name" placeholder="例如：项目A"></div>
+      <button id="create-folder-btn" class="btn btn-secondary" type="button">创建文件夹</button>
+      <button id="refresh-tasks" class="btn btn-secondary" type="button">刷新</button>
+    </div>
+    <p id="folder-op-result" class="result-text"></p>
+    <div class="table-wrap">
+      <table id="tasks-table">
+        <thead><tr><th>任务 ID</th><th>文件夹</th><th>任务名</th><th>状态</th><th>进度</th><th>时间段</th><th>链</th><th>总交易量</th><th>Cycle 数</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Panel: 任务详情 -->
+<div class="panel" id="panel-detail">
+  <div class="page-header"><h2>任务详情</h2><p>查看统计结果、配对记录、追加时间段</p></div>
+
+  <div class="card">
+    <div class="card-title">选择任务</div>
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">任务 ID</label><input id="detail-task-id" placeholder="输入任务 ID 或从列表点击"></div>
+      <div class="form-group"><label class="form-label">归属文件夹</label><select id="detail-folder-select"><option value="">未分类</option></select></div>
+      <div class="form-group" style="justify-content:flex-end;padding-top:16px"><button id="assign-folder-btn" class="btn btn-secondary" type="button">保存分类</button></div>
+    </div>
+    <p id="assign-folder-result" class="result-text"></p>
+    <div class="btn-row">
+      <button id="load-detail" class="btn btn-primary" type="button">查看详情</button>
+      <button id="load-cycles" class="btn btn-secondary" type="button">查看配对记录</button>
+      <button id="export-csv" class="btn btn-secondary" type="button">导出 CSV</button>
+      <button id="cancel-task-btn" class="btn btn-secondary" type="button">取消任务</button>
+      <button id="delete-task-btn" class="btn btn-danger" type="button">删除任务</button>
+    </div>
+    <p id="task-op-result" class="result-text"></p>
+  </div>
+
+  <div class="card">
+    <div class="card-title">运行进度</div>
+    <div class="progress-info"><span id="task-progress-text">尚未选择任务</span><span id="task-progress-pct">0%</span></div>
+    <div class="progress-wrap"><div id="task-progress-bar" class="progress-bar" style="width:0"></div></div>
+    <p id="task-progress-msg" class="result-text"></p>
+  </div>
+
+  <div class="card" id="detail-summary"><div class="empty-state">请先选择任务并点击"查看详情"。</div></div>
+
+  <div id="detail-output"></div>
+
+  <div class="card">
+    <div class="card-title">追加时间段并重扫</div>
+    <div class="tr-section">
+      <div class="tr-header"><span>追加时间段（UTC+8）</span><button id="add-append-range" class="btn btn-secondary btn-sm" type="button">+ 增加时间段</button></div>
+      <div id="append-range-list"></div>
+      <p style="font-size:11px;color:var(--muted);margin-top:6px">可一次追加多个时间段到同一个任务再重扫。</p>
+    </div>
+    <div class="btn-row"><button id="append-range-run" class="btn btn-secondary" type="button">追加并重扫</button></div>
+    <p id="append-range-result" class="result-text"></p>
+  </div>
+
+  <div class="card">
+    <div class="card-title">同步到飞书多维表格（只追加）</div>
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">飞书子表</label><select id="feishu-table-select"><option value="">请选择飞书子表</option></select></div>
+      <div class="form-group"><label class="form-label">日期字段</label><input id="feishu-date-field" value="日期"></div>
+      <div class="form-group"><label class="form-label">交易前字段</label><input id="feishu-before-field" value="交易前"></div>
+      <div class="form-group"><label class="form-label">交易后字段</label><input id="feishu-after-field" value="交易后"></div>
+      <div class="form-group"><label class="form-label">Gas(USD)字段</label><input id="feishu-gas-field" value="gas费"></div>
+    </div>
+    <div class="btn-row"><button id="sync-feishu-btn" class="btn btn-secondary" type="button">同步到飞书</button></div>
+    <p id="sync-feishu-result" class="result-text"></p>
+  </div>
+</div>
+
+</main>
+<script>
+const state={selectedTaskId:null,activeView:"detail",folders:[],listFolderFilter:"",appendDefaultsTaskId:null,expandedRangeTaskId:null,expandedRangeIndexes:new Set(),feishuTables:[],feishuTaskTableMap:{}};
+const STORAGE_KEYS={form:"okx_stats_form_v1",lastTaskId:"okx_stats_last_task_id_v1",feishuSync:"okx_stats_feishu_sync_v1"};
+const FORM_FIELD_NAMES=["taskName","folderId","chain","wallets","token","baseToken","boostMultiplier","epsilon","pairTimeoutMinutes","actualBoostVolume"];
+const $=(s)=>document.querySelector(s);
+const safeGetStorageItem=(k)=>{try{return localStorage.getItem(k)}catch(_){return null}};
+const safeSetStorageItem=(k,v)=>{try{localStorage.setItem(k,v)}catch(_){}};
+const UTC8_OFFSET_MS=8*60*60*1000;
+const pad2=(n)=>String(n).padStart(2,"0");
+const toUtc8InputValueFromDate=(date)=>{if(!(date instanceof Date)||Number.isNaN(date.getTime()))return"";const shifted=new Date(date.getTime()+UTC8_OFFSET_MS);return`${shifted.getUTCFullYear()}-${pad2(shifted.getUTCMonth()+1)}-${pad2(shifted.getUTCDate())}T${pad2(shifted.getUTCHours())}:${pad2(shifted.getUTCMinutes())}:${pad2(shifted.getUTCSeconds())}`};
+const toIsoZ=(v)=>{const text=String(v||"").trim();if(!text)return null;const m=text.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/);if(!m)return null;const year=Number(m[1]),month=Number(m[2]),day=Number(m[3]),hour=Number(m[4]),minute=Number(m[5]),second=Number(m[6]||"0");if([year,month,day,hour,minute,second].some(n=>Number.isNaN(n)))return null;const utcMs=Date.UTC(year,month-1,day,hour,minute,second)-UTC8_OFFSET_MS;const check=new Date(utcMs+UTC8_OFFSET_MS);if(check.getUTCFullYear()!==year||check.getUTCMonth()+1!==month||check.getUTCDate()!==day||check.getUTCHours()!==hour||check.getUTCMinutes()!==minute||check.getUTCSeconds()!==second)return null;return new Date(utcMs).toISOString()};
+const num=(v,d=4)=>{if(v===null||v===undefined||v==="")return"-";const n=Number(v);return Number.isNaN(n)?"-":n.toFixed(d)};
+const statusText=(s)=>s==="running"?"运行中":s==="completed"?"已完成":s==="failed"?"失败":s==="canceled"?"已取消":(s||"-");
+const chainText=(c)=>c==="bsc"?"BSC":c==="base"?"Base":c==="arbitrum"?"Arbitrum":c==="ethereum"?"Ethereum":(c||"-");
+const fmtTime=(v)=>{if(!v)return"-";const d=new Date(v);if(Number.isNaN(d.getTime()))return String(v);return toUtc8InputValueFromDate(d).replace("T"," ").replace(/-/g,"/")};
+const parseApiError=(t)=>{if(!t)return"未知错误";try{const o=JSON.parse(t);if(typeof o?.detail==="string")return o.detail}catch(_){}return t};
+const buildDefaultTimeRange=()=>{const n=new Date();const s=new Date(n.getTime()-2*60*60*1000);return{startTime:toUtc8InputValueFromDate(s),endTime:toUtc8InputValueFromDate(n)}};
+
+// Panel navigation
+document.querySelectorAll(".nav-item").forEach(item=>{
+  item.addEventListener("click",()=>{
+    const panel=item.dataset.panel;
+    document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("active"));
+    document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
+    item.classList.add("active");
+    document.getElementById("panel-"+panel).classList.add("active");
+  });
+});
+function switchToPanel(name){
+  document.querySelectorAll(".nav-item").forEach(n=>n.classList.toggle("active",n.dataset.panel===name));
+  document.querySelectorAll(".panel").forEach(p=>p.classList.toggle("active",p.id==="panel-"+name));
+}
+
+function createTimeRangeRow(range){const row=document.createElement("div");row.className="time-range-row";row.innerHTML=`<div class="form-group"><label class="form-label">开始时间 (UTC+8)</label><input class="time-start" type="datetime-local" step="1" required></div><div class="form-group"><label class="form-label">结束时间 (UTC+8)</label><input class="time-end" type="datetime-local" step="1" required></div><div class="form-group" style="justify-content:flex-end;padding-top:16px"><button type="button" class="remove-time-range btn btn-danger btn-sm">删除</button></div>`;row.querySelector(".time-start").value=range.startTime||"";row.querySelector(".time-end").value=range.endTime||"";row.querySelector(".remove-time-range").addEventListener("click",()=>{const list=$("#time-range-list");if(!list||list.children.length<=1)return;row.remove();syncTimeRangeButtons();saveFormMemory()});return row}
+const getTimeRangesFromUI=()=>Array.from(document.querySelectorAll("#time-range-list .time-range-row")).map(r=>({startTime:r.querySelector(".time-start")?.value?.trim()||"",endTime:r.querySelector(".time-end")?.value?.trim()||""}));
+function setTimeRanges(ranges){const list=$("#time-range-list");if(!list)return;list.innerHTML="";const safe=Array.isArray(ranges)&&ranges.length>0?ranges:[buildDefaultTimeRange()];for(const r of safe)list.appendChild(createTimeRangeRow(r));syncTimeRangeButtons()}
+function syncTimeRangeButtons(){const btns=Array.from(document.querySelectorAll(".remove-time-range"));const dis=btns.length<=1;for(const b of btns)b.disabled=dis}
+function buildNextTimeRange(){const arr=getTimeRangesFromUI();if(arr.length===0)return buildDefaultTimeRange();const last=arr[arr.length-1];if(!last.endTime)return buildDefaultTimeRange();const sIso=toIsoZ(last.endTime);if(!sIso)return buildDefaultTimeRange();const s=new Date(sIso);if(Number.isNaN(s.getTime()))return buildDefaultTimeRange();const e=new Date(s.getTime()+2*60*60*1000);return{startTime:toUtc8InputValueFromDate(s),endTime:toUtc8InputValueFromDate(e)}}
+function createAppendRangeRow(range){const row=document.createElement("div");row.className="append-range-row";row.innerHTML=`<div class="form-group"><label class="form-label">开始时间 (UTC+8)</label><input class="append-time-start" type="datetime-local" step="1" required></div><div class="form-group"><label class="form-label">结束时间 (UTC+8)</label><input class="append-time-end" type="datetime-local" step="1" required></div><div class="form-group" style="justify-content:flex-end;padding-top:16px"><button type="button" class="remove-append-range btn btn-danger btn-sm">删除</button></div>`;row.querySelector(".append-time-start").value=range.startTime||"";row.querySelector(".append-time-end").value=range.endTime||"";row.querySelector(".remove-append-range").addEventListener("click",()=>{const list=$("#append-range-list");if(!list||list.children.length<=1)return;row.remove();syncAppendRangeButtons()});return row}
+const getAppendRangesFromUI=()=>Array.from(document.querySelectorAll("#append-range-list .append-range-row")).map(r=>({startTime:r.querySelector(".append-time-start")?.value?.trim()||"",endTime:r.querySelector(".append-time-end")?.value?.trim()||""}));
+function setAppendRanges(ranges){const list=$("#append-range-list");if(!list)return;list.innerHTML="";const safe=Array.isArray(ranges)&&ranges.length>0?ranges:[buildDefaultTimeRange()];for(const r of safe)list.appendChild(createAppendRangeRow(r));syncAppendRangeButtons()}
+function syncAppendRangeButtons(){const btns=Array.from(document.querySelectorAll(".remove-append-range"));const dis=btns.length<=1;for(const b of btns)b.disabled=dis}
+function buildNextAppendRange(){const arr=getAppendRangesFromUI();if(arr.length===0)return buildDefaultTimeRange();const last=arr[arr.length-1];if(!last.endTime)return buildDefaultTimeRange();const sIso=toIsoZ(last.endTime);if(!sIso)return buildDefaultTimeRange();const s=new Date(sIso);if(Number.isNaN(s.getTime()))return buildDefaultTimeRange();const e=new Date(s.getTime()+2*60*60*1000);return{startTime:toUtc8InputValueFromDate(s),endTime:toUtc8InputValueFromDate(e)}}
+function saveFormMemory(){const form=$("#task-form");const snap={};for(const name of FORM_FIELD_NAMES){const c=form.elements.namedItem(name);if(!c)continue;snap[name]=c.value??""}snap.timeRanges=getTimeRangesFromUI();safeSetStorageItem(STORAGE_KEYS.form,JSON.stringify(snap))}
+function loadFormMemory(){const raw=safeGetStorageItem(STORAGE_KEYS.form);if(!raw)return false;try{const snap=JSON.parse(raw);const form=$("#task-form");let ok=false;for(const name of FORM_FIELD_NAMES){const c=form.elements.namedItem(name);if(!c)continue;if(snap[name]===undefined||snap[name]===null)continue;c.value=String(snap[name]);ok=true}if(Array.isArray(snap.timeRanges)&&snap.timeRanges.length>0){setTimeRanges(snap.timeRanges.map(i=>({startTime:String(i.startTime||""),endTime:String(i.endTime||"")})));ok=true}return ok}catch(_){return false}}
+const saveLastTaskId=(id)=>{safeSetStorageItem(STORAGE_KEYS.lastTaskId,(id||"").trim())};
+const loadLastTaskId=()=>{const raw=safeGetStorageItem(STORAGE_KEYS.lastTaskId);return raw?raw.trim():""};
+function saveFeishuSyncMemory(){let old={};try{old=JSON.parse(safeGetStorageItem(STORAGE_KEYS.feishuSync)||"{}")}catch(_){old={}}const map=old&&typeof old.taskTables==="object"&&old.taskTables?old.taskTables:{};const taskId=$("#detail-task-id")?.value?.trim()||"";const tableId=$("#feishu-table-select")?.value||"";if(taskId)tableId?map[taskId]=tableId:delete map[taskId];const snap={taskTables:map,dateField:$("#feishu-date-field")?.value?.trim()||"日期",tradeBeforeField:$("#feishu-before-field")?.value?.trim()||"交易前",tradeAfterField:$("#feishu-after-field")?.value?.trim()||"交易后",gasUsdField:$("#feishu-gas-field")?.value?.trim()||"gas费"};state.feishuTaskTableMap=map;safeSetStorageItem(STORAGE_KEYS.feishuSync,JSON.stringify(snap))}
+function loadFeishuSyncMemory(){const raw=safeGetStorageItem(STORAGE_KEYS.feishuSync);if(!raw)return;try{const snap=JSON.parse(raw);const map=snap&&typeof snap.taskTables==="object"&&snap.taskTables?snap.taskTables:{};state.feishuTaskTableMap=map;if($("#feishu-date-field")&&typeof snap.dateField==="string")$("#feishu-date-field").value=snap.dateField||"日期";if($("#feishu-before-field")&&typeof snap.tradeBeforeField==="string")$("#feishu-before-field").value=snap.tradeBeforeField||"交易前";if($("#feishu-after-field")&&typeof snap.tradeAfterField==="string")$("#feishu-after-field").value=snap.tradeAfterField||"交易后";if($("#feishu-gas-field")&&typeof snap.gasUsdField==="string")$("#feishu-gas-field").value=snap.gasUsdField||"gas费"}catch(_){}}
+function renderFeishuTableSelect(){const sel=$("#feishu-table-select");if(!sel)return;const taskId=$("#detail-task-id")?.value?.trim()||"";const remembered=taskId?state.feishuTaskTableMap[taskId]||"":"";const current=remembered||sel.value||"";sel.innerHTML='<option value="">请选择飞书子表</option>';for(const t of state.feishuTables){const op=document.createElement("option");op.value=t.tableId;op.textContent=`${t.name} (${t.tableId})`;sel.appendChild(op)}if(current&&Array.from(sel.options).some(op=>op.value===current))sel.value=current;else sel.value=""}
+async function fetchFeishuTables(){const res=await fetch("/api/tasks/feishu/tables");if(!res.ok)throw new Error(parseApiError(await res.text()));const items=await res.json();state.feishuTables=Array.isArray(items)?items:[];renderFeishuTableSelect()}
+async function syncToFeishu(){const taskId=$("#detail-task-id").value.trim(),result=$("#sync-feishu-result");if(!taskId){result.textContent="请先输入任务 ID。";return}const tableId=$("#feishu-table-select").value||"";if(!tableId){result.textContent="请选择飞书子表。";return}const payload={tableId,wallet:null,dateField:$("#feishu-date-field").value.trim()||"日期",tradeBeforeField:$("#feishu-before-field").value.trim()||"交易前",tradeAfterField:$("#feishu-after-field").value.trim()||"交易后",gasUsdField:$("#feishu-gas-field").value.trim()||"gas费"};saveFeishuSyncMemory();result.textContent="正在同步到飞书...";const res=await fetch(`/api/tasks/${taskId}/sync-feishu`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});const text=await res.text();if(!res.ok){result.textContent=`同步失败：${parseApiError(text)}`;return}const data=JSON.parse(text);result.textContent=`同步成功：已追加 ${data.appendedCount} 条到表 ${data.tableId}`;}
+function renderFolderSelectOptions(){const sels=["#form-folder-select","#detail-folder-select","#list-folder-filter"];for(const sel of sels){const el=$(sel);if(!el)continue;const cur=el.value;if(sel==="#list-folder-filter")el.innerHTML='<option value="">全部</option><option value="none">未分类</option>';else el.innerHTML='<option value="">未分类</option>';for(const f of state.folders){const op=document.createElement("option");op.value=f.folderId;op.textContent=f.name;el.appendChild(op)}if([...el.options].some(op=>op.value===cur))el.value=cur;else if(sel==="#list-folder-filter")el.value=state.listFolderFilter||"";else el.value=""}}
+async function fetchFolders(){const res=await fetch("/api/tasks/folders");if(!res.ok)throw new Error(parseApiError(await res.text()));const items=await res.json();state.folders=Array.isArray(items)?items:[];renderFolderSelectOptions()}
+function renderProgress(task){const p=Math.max(0,Math.min(100,Number(task?.progressPercent??0)));const stage=task?.progressStage||"等待中";const text=task?`${statusText(task.status)} · ${stage}`:"尚未选择任务";$("#task-progress-text").textContent=text;$("#task-progress-pct").textContent=`${p}%`;$("#task-progress-msg").textContent=task?.progressMessage||"";$("#task-progress-bar").style.width=`${p}%`}
+function renderSummary(detail){
+  const box=$("#detail-summary");
+  if(!detail){box.innerHTML='<div class="empty-state">请先选择任务并点击"查看详情"。</div>';return}
+  if(state.expandedRangeTaskId!==detail.taskId){state.expandedRangeTaskId=detail.taskId;state.expandedRangeIndexes=new Set()}
+  else{for(const el of Array.from(box.querySelectorAll("details.range-detail[open]"))){const idx=Number(el.dataset.rangeIndex);if(!Number.isNaN(idx))state.expandedRangeIndexes.add(idx)}}
+  const s=detail.summary||{};
+  const trs=Array.isArray(detail.timeRanges)?detail.timeRanges:[];
+  const rss=Array.isArray(detail.rangeSummaries)?detail.rangeSummaries:[];
+  const map=new Map(rss.map(i=>[Number(i.rangeIndex),i]));
+  const appendix=trs.length?trs.map((r,idx)=>{
+    const rangeIndex=idx+1;const st=map.get(rangeIndex)||{};const openAttr=state.expandedRangeIndexes.has(rangeIndex)?" open":"";
+    return `<details class="range-detail" data-range-index="${rangeIndex}"${openAttr}><summary>${rangeIndex}. ${fmtTime(r.startTime)} → ${fmtTime(r.endTime)}</summary><div class="range-body"><div class="kpi-grid"><div class="kpi-card"><div class="kpi-label">总交易量</div><div class="kpi-value">${num(st.sumTotalVolume)}</div></div><div class="kpi-card"><div class="kpi-label">计算 Boost</div><div class="kpi-value hi">${num(st.computedBoostVolume)}</div></div><div class="kpi-card"><div class="kpi-label">总磨损</div><div class="kpi-value">${num(st.sumWear)}</div></div><div class="kpi-card"><div class="kpi-label">平均费率</div><div class="kpi-value">${num(st.avgFeeRate,6)}</div></div><div class="kpi-card"><div class="kpi-label">Gas(Native)</div><div class="kpi-value">${num(st.sumGasNative,8)}</div></div><div class="kpi-card"><div class="kpi-label">Gas(USD)</div><div class="kpi-value">${num(st.sumGasUsd)}</div></div><div class="kpi-card"><div class="kpi-label">Cycle 数量</div><div class="kpi-value">${st.cycleCount??0}</div></div><div class="kpi-card"><div class="kpi-label">钱包数</div><div class="kpi-value">${st.walletCount??0}</div></div></div></div></details>`;
+  }).join(""):'<div class="empty-state">暂无时间段。</div>';
+  const err=detail.errorMessage?`<div style="margin-top:10px;padding:12px;border:1px solid rgba(248,81,73,.3);border-radius:8px;background:rgba(248,81,73,.08);font-size:12px;color:var(--danger)">错误信息：${detail.errorMessage}</div>`:"";
+  const badgeClass=`badge-${detail.status||"canceled"}`;
+  box.innerHTML=`<div class="card-title">汇总数据</div><div class="kpi-grid"><div class="kpi-card"><div class="kpi-label">任务状态</div><div class="kpi-value"><span class="badge ${badgeClass}">${statusText(detail.status)}</span></div></div><div class="kpi-card"><div class="kpi-label">任务名称</div><div class="kpi-value" style="font-size:13px">${detail.taskName||"-"}</div></div><div class="kpi-card"><div class="kpi-label">文件夹</div><div class="kpi-value" style="font-size:13px">${detail.folderName||"未分类"}</div></div><div class="kpi-card"><div class="kpi-label">统计链</div><div class="kpi-value" style="font-size:13px">${chainText(detail.chain)}</div></div><div class="kpi-card"><div class="kpi-label">开始时间</div><div class="kpi-value" style="font-size:12px">${fmtTime(detail.startTime)}</div></div><div class="kpi-card"><div class="kpi-label">结束时间</div><div class="kpi-value" style="font-size:12px">${fmtTime(detail.endTime)}</div></div><div class="kpi-card"><div class="kpi-label">时间段数量</div><div class="kpi-value">${trs.length}</div></div><div class="kpi-card"><div class="kpi-label">总交易量</div><div class="kpi-value hi">${num(s.sumTotalVolume)}</div></div><div class="kpi-card"><div class="kpi-label">计算 Boost</div><div class="kpi-value hi">${num(s.computedBoostVolume)}</div></div><div class="kpi-card"><div class="kpi-label">实际 Boost</div><div class="kpi-value">${num(s.actualBoostVolume)}</div></div><div class="kpi-card"><div class="kpi-label">Boost 差值</div><div class="kpi-value">${num(s.boostDiff)}</div></div><div class="kpi-card"><div class="kpi-label">总磨损</div><div class="kpi-value">${num(s.sumWear)}</div></div><div class="kpi-card"><div class="kpi-label">平均费率</div><div class="kpi-value">${num(s.avgFeeRate,6)}</div></div><div class="kpi-card"><div class="kpi-label">Gas(Native)</div><div class="kpi-value">${num(s.sumGasNative,8)}</div></div><div class="kpi-card"><div class="kpi-label">Gas(USD)</div><div class="kpi-value">${num(s.sumGasUsd)}</div></div><div class="kpi-card"><div class="kpi-label">Cycle 数量</div><div class="kpi-value">${s.cycleCount??0}</div></div><div class="kpi-card"><div class="kpi-label">钱包数</div><div class="kpi-value">${Array.isArray(detail.wallets)?detail.wallets.length:0}</div></div></div><div style="margin-top:14px"><div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">时间段明细（点击展开）</div>${appendix}</div>${err}`;
+  for(const el of Array.from(box.querySelectorAll("details.range-detail"))){el.addEventListener("toggle",()=>{const idx=Number(el.dataset.rangeIndex);if(Number.isNaN(idx))return;if(el.open)state.expandedRangeIndexes.add(idx);else state.expandedRangeIndexes.delete(idx)})}
+}
+function renderCycles(detail,cyclesResp){const root=$("#detail-output");if(!detail||!cyclesResp){root.innerHTML="";return}if(!Array.isArray(cyclesResp.items)||cyclesResp.items.length===0){let msg="没有配对记录。";if(detail.status==="running")msg="任务仍在运行中，配对记录还未生成完成。";if(detail.status==="completed")msg="任务已完成，但时间段内没有匹配到买卖闭环。";if(detail.status==="failed")msg=`任务失败，未生成记录。${detail.errorMessage||""}`;root.innerHTML=`<div class="card" style="margin-top:12px"><div class="empty-state">${msg}</div></div>`;return}
+const rows=cyclesResp.items.map(item=>`<tr><td>${item.cycleIndex}</td><td class="mono">${item.wallet}</td><td>${fmtTime(item.startAt)}<br>${fmtTime(item.endAt)}</td><td>${num(item.tradeBeforeUsd)}</td><td>${num(item.tradeAfterUsd)}</td><td>${num(item.tradeVolumeUsd)}</td><td>${num(item.wearUsd)}</td><td>${num(item.feeRate,6)}</td><td>${num(item.gasNativeTotal,8)}</td><td>${num(item.gasUsdTotal)}</td><td>${item.incomplete?'<span class="pill">未完整闭环</span>':'-'}</td><td class="mono" style="max-width:160px;word-break:break-all">${Array.isArray(item.txHashes)?item.txHashes.join("<br>"):""}</td></tr>`).join("");
+root.innerHTML=`<div class="card" style="margin-top:12px"><div class="card-title">配对明细（共 ${cyclesResp.total||0} 条）</div><div class="table-wrap"><table><thead><tr><th>#</th><th>钱包</th><th>时间 (UTC+8)</th><th>交易前</th><th>交易后</th><th>交易量</th><th>磨损</th><th>费率</th><th>Gas(Native)</th><th>Gas(USD)</th><th>状态</th><th>交易哈希</th></tr></thead><tbody>${rows}</tbody></table></div></div>`}
+async function fetchTasks(){const q=state.listFolderFilter?`?folderId=${encodeURIComponent(state.listFolderFilter)}`:"";const res=await fetch(`/api/tasks${q}`);if(!res.ok)throw new Error(parseApiError(await res.text()));const items=await res.json();const rows=Array.isArray(items)?items:[];const tbody=$("#tasks-table tbody");tbody.innerHTML="";for(const item of rows){const tr=document.createElement("tr");tr.className="task-row"+(state.selectedTaskId===item.taskId?" selected":"");tr.style.cursor="pointer";tr.innerHTML=`<td class="mono">${item.taskId}</td><td>${item.folderName||"未分类"}</td><td>${item.taskName||"-"}</td><td><span class="badge badge-${item.status||"canceled"}">${statusText(item.status)}</span></td><td>${Number(item.progressPercent||0)}%</td><td>${item.timeRangeCount??"-"}</td><td>${chainText(item.chain)}</td><td>${num(item.summary?.sumTotalVolume)}</td><td>${item.summary?.cycleCount??0}</td>`;tr.addEventListener("click",()=>{state.selectedTaskId=item.taskId;$("#detail-task-id").value=item.taskId;saveLastTaskId(item.taskId);switchToPanel("detail");loadDetail()});tbody.appendChild(tr)}}
+async function fetchTaskDetail(taskId){const res=await fetch(`/api/tasks/${taskId}`);if(!res.ok)throw new Error(parseApiError(await res.text()));return res.json()}
+async function fetchTaskCycles(taskId){const res=await fetch(`/api/tasks/${taskId}/cycles?page=1&pageSize=100`);if(!res.ok)throw new Error(parseApiError(await res.text()));return res.json()}
+async function cancelTask(){const taskId=$("#detail-task-id").value.trim(),result=$("#task-op-result");if(!taskId){result.textContent="请先输入任务 ID。";return}if(!window.confirm(`确认取消任务 ${taskId} 吗？`))return;result.textContent="正在请求取消任务...";const res=await fetch(`/api/tasks/${taskId}/cancel`,{method:"POST"});const text=await res.text();if(!res.ok){result.textContent=`取消失败：${parseApiError(text)}`;return}const data=JSON.parse(text);result.textContent=`已发送取消请求：${data.taskId}（${statusText(data.status)} / ${data.progressStage||"-"}）`;await fetchTasks();await refreshActiveTaskView()}
+async function deleteTask(){const taskId=$("#detail-task-id").value.trim(),result=$("#task-op-result");if(!taskId){result.textContent="请先输入任务 ID。";return}if(!window.confirm(`确认删除任务 ${taskId} 吗？此操作不可恢复。`))return;result.textContent="正在删除任务...";const res=await fetch(`/api/tasks/${taskId}`,{method:"DELETE"});const text=await res.text();if(!res.ok){result.textContent=`删除失败：${parseApiError(text)}`;return}const data=JSON.parse(text);result.textContent=`已删除任务：${data.taskId}`;if(state.selectedTaskId===taskId)state.selectedTaskId=null;state.activeView="detail";state.appendDefaultsTaskId=null;$("#detail-task-id").value="";saveLastTaskId("");$("#detail-output").innerHTML="";$("#assign-folder-result").textContent="";$("#append-range-result").textContent="";$("#sync-feishu-result").textContent="";renderFeishuTableSelect();renderProgress(null);renderSummary(null);await fetchTasks()}
+async function createFolder(){const nameInput=$("#new-folder-name"),result=$("#folder-op-result");const name=nameInput.value.trim();if(!name){result.textContent="请输入文件夹名称。";return}result.textContent="正在创建文件夹...";const res=await fetch("/api/tasks/folders",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name})});const text=await res.text();if(!res.ok){result.textContent=`创建失败：${parseApiError(text)}`;return}const folder=JSON.parse(text);result.textContent=`已创建文件夹：${folder.name}`;nameInput.value="";await fetchFolders();const formFolder=$("#form-folder-select");if(formFolder)formFolder.value=folder.folderId;saveFormMemory()}
+async function assignFolderToTask(){const taskId=$("#detail-task-id").value.trim();const folderId=$("#detail-folder-select").value||null;const result=$("#assign-folder-result");if(!taskId){result.textContent="请先输入任务 ID。";return}result.textContent="正在保存分类...";const res=await fetch(`/api/tasks/${taskId}/folder`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({folderId})});const text=await res.text();if(!res.ok){result.textContent=`保存失败：${parseApiError(text)}`;return}const detail=JSON.parse(text);result.textContent=`已保存：${detail.folderName||"未分类"}`;state.selectedTaskId=detail.taskId;await fetchTasks();renderSummary(detail)}
+function setAppendRangeDefaults(detail){const list=$("#append-range-list");if(!list||!detail?.endTime)return;const taskId=detail.taskId||"";const existing=getAppendRangesFromUI();const hasInput=existing.some(i=>i.startTime||i.endTime);if(state.appendDefaultsTaskId===taskId&&hasInput)return;const s=new Date(detail.endTime);if(Number.isNaN(s.getTime()))return;const e=new Date(s.getTime()+2*60*60*1000);setAppendRanges([{startTime:toUtc8InputValueFromDate(s),endTime:toUtc8InputValueFromDate(e)}]);state.appendDefaultsTaskId=taskId}
+async function appendRangeAndRescan(){const taskId=$("#detail-task-id").value.trim(),result=$("#append-range-result");if(!taskId){result.textContent="请先输入任务 ID。";return}const arr=getAppendRangesFromUI();if(arr.length===0){result.textContent="请至少添加 1 个时间段。";return}const normalized=[];for(let i=0;i<arr.length;i+=1){const row=arr[i];if(!row.startTime||!row.endTime){result.textContent=`追加失败：第 ${i+1} 个时间段未填写完整。`;return}const s=toIsoZ(row.startTime),e=toIsoZ(row.endTime);if(!s||!e||Number.isNaN(new Date(s).getTime())||Number.isNaN(new Date(e).getTime())){result.textContent=`追加失败：第 ${i+1} 个时间段格式无效。`;return}if(new Date(s)>=new Date(e)){result.textContent=`追加失败：第 ${i+1} 个时间段开始时间必须早于结束时间。`;return}normalized.push({startTime:s,endTime:e})}
+result.textContent="正在追加时间段并重扫...";const res=await fetch(`/api/tasks/${taskId}/append-ranges`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({timeRanges:normalized})});const text=await res.text();if(!res.ok){result.textContent=`追加失败：${parseApiError(text)}`;return}const data=JSON.parse(text);result.textContent=`已追加 ${normalized.length} 个时间段并开始重扫：${data.taskId}（${statusText(data.status)}）`;state.selectedTaskId=data.taskId;state.activeView="detail";saveLastTaskId(data.taskId);await fetchTasks();await loadDetail()}
+async function loadDetail(){const taskId=$("#detail-task-id").value.trim();if(!taskId)return;state.selectedTaskId=taskId;state.activeView="detail";saveLastTaskId(taskId);try{const detail=await fetchTaskDetail(taskId);const opResult=$("#task-op-result");if(opResult&&detail.status!=="running")opResult.textContent="";renderProgress(detail);renderSummary(detail);renderFeishuTableSelect();const detailFolder=$("#detail-folder-select");if(detailFolder)detailFolder.value=detail.folderId||"";const assignResult=$("#assign-folder-result");if(assignResult)assignResult.textContent="";setAppendRangeDefaults(detail);$("#detail-output").innerHTML=`<div class="card" style="margin-top:12px"><div class="card-title">运行说明</div><p style="font-size:12px;color:var(--muted)">当前阶段：${detail.progressStage||"-"}。${detail.progressMessage||""}</p><p style="font-size:12px;color:var(--muted2);margin-top:6px">任务会自动刷新，无需重复点击。若长时间停在同一阶段，通常是 RPC 限流导致。</p></div>`}catch(err){$("#detail-output").innerHTML=`<div class="card" style="margin-top:12px"><div class="empty-state">读取详情失败：${String(err)}</div></div>`}}
+async function loadCycles(){const taskId=$("#detail-task-id").value.trim();if(!taskId)return;state.selectedTaskId=taskId;state.activeView="cycles";saveLastTaskId(taskId);try{const [detail,cycles]=await Promise.all([fetchTaskDetail(taskId),fetchTaskCycles(taskId)]);renderProgress(detail);renderSummary(detail);renderFeishuTableSelect();renderCycles(detail,cycles)}catch(err){$("#detail-output").innerHTML=`<div class="card" style="margin-top:12px"><div class="empty-state">读取配对记录失败：${String(err)}</div></div>`}}
+async function refreshActiveTaskView(){if(!state.selectedTaskId)return;if(state.activeView==="cycles")await loadCycles();else await loadDetail()}
+$("#task-form").addEventListener("submit",async(event)=>{event.preventDefault();const form=event.currentTarget;saveFormMemory();const fd=new FormData(form);const output=$("#create-result");const wallets=String(fd.get("wallets")).split(",").map(w=>w.trim()).filter(Boolean);const timeRanges=getTimeRangesFromUI();if(wallets.length===0){output.textContent="创建失败：请至少填写 1 个钱包地址。";return}if(timeRanges.length===0){output.textContent="创建失败：请至少添加 1 个时间段。";return}const normalized=[];for(let i=0;i<timeRanges.length;i+=1){const row=timeRanges[i];if(!row.startTime||!row.endTime){output.textContent=`创建失败：第 ${i+1} 个时间段未填写完整。`;return}const s=toIsoZ(row.startTime),e=toIsoZ(row.endTime);if(!s||!e||Number.isNaN(new Date(s).getTime())||Number.isNaN(new Date(e).getTime())){output.textContent=`创建失败：第 ${i+1} 个时间段格式无效。`;return}if(new Date(s)>=new Date(e)){output.textContent=`创建失败：第 ${i+1} 个时间段开始时间必须早于结束时间。`;return}normalized.push({startTime:s,endTime:e})}
+const payload={taskName:(fd.get("taskName")||"").toString().trim()||null,folderId:(fd.get("folderId")||"").toString().trim()||null,chain:fd.get("chain"),wallets,token:fd.get("token"),baseToken:fd.get("baseToken"),startTime:normalized[0].startTime,endTime:normalized[normalized.length-1].endTime,timeRanges:normalized,boostMultiplier:Number(fd.get("boostMultiplier")),epsilon:Number(fd.get("epsilon")),pairTimeoutMinutes:Number(fd.get("pairTimeoutMinutes")),actualBoostVolume:fd.get("actualBoostVolume")?Number(fd.get("actualBoostVolume")):null};
+output.textContent=`正在创建任务（同一任务，${normalized.length} 个时间段）...`;const res=await fetch("/api/tasks",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});const text=await res.text();if(!res.ok){output.textContent=`创建失败：${parseApiError(text)}`;return}const data=JSON.parse(text);output.textContent=`任务已创建：${data.taskId}，状态：${statusText(data.status)}，时间段：${normalized.length}`;$("#detail-task-id").value=data.taskId;state.selectedTaskId=data.taskId;state.activeView="detail";saveLastTaskId(data.taskId);await fetchTasks();switchToPanel("detail");await loadDetail()});
+$("#refresh-tasks").addEventListener("click",async()=>{await fetchTasks();await refreshActiveTaskView()});
+$("#create-folder-btn").addEventListener("click",createFolder);
+$("#assign-folder-btn").addEventListener("click",assignFolderToTask);
+$("#list-folder-filter").addEventListener("change",async(event)=>{state.listFolderFilter=event.target.value||"";await fetchTasks()});
+$("#load-detail").addEventListener("click",loadDetail);
+$("#load-cycles").addEventListener("click",loadCycles);
+$("#append-range-run").addEventListener("click",appendRangeAndRescan);
+$("#sync-feishu-btn").addEventListener("click",syncToFeishu);
+$("#export-csv").addEventListener("click",()=>{const taskId=$("#detail-task-id").value.trim();if(!taskId)return;window.open(`/api/tasks/${taskId}/export.csv`,"_blank")});
+$("#cancel-task-btn").addEventListener("click",cancelTask);
+$("#delete-task-btn").addEventListener("click",deleteTask);
+$("#add-time-range").addEventListener("click",()=>{const list=$("#time-range-list");if(!list)return;list.appendChild(createTimeRangeRow(buildNextTimeRange()));syncTimeRangeButtons();saveFormMemory()});
+$("#add-append-range").addEventListener("click",()=>{const list=$("#append-range-list");if(!list)return;list.appendChild(createAppendRangeRow(buildNextAppendRange()));syncAppendRangeButtons()});
+$("#feishu-table-select").addEventListener("change",saveFeishuSyncMemory);
+$("#feishu-date-field").addEventListener("input",saveFeishuSyncMemory);
+$("#feishu-before-field").addEventListener("input",saveFeishuSyncMemory);
+$("#feishu-after-field").addEventListener("input",saveFeishuSyncMemory);
+$("#feishu-gas-field").addEventListener("input",saveFeishuSyncMemory);
+$("#detail-task-id").addEventListener("input",(event)=>{saveLastTaskId(event.target.value.trim());const tip=$("#append-range-result");if(tip)tip.textContent="";const fsTip=$("#sync-feishu-result");if(fsTip)fsTip.textContent="";const opTip=$("#task-op-result");if(opTip)opTip.textContent="";state.appendDefaultsTaskId=null;renderFeishuTableSelect()});
+const formElement=$("#task-form");
+formElement.addEventListener("input",saveFormMemory);
+formElement.addEventListener("change",saveFormMemory);
+setTimeRanges([buildDefaultTimeRange()]);
+setAppendRanges([buildDefaultTimeRange()]);
+const formRestored=loadFormMemory();
+loadFeishuSyncMemory();
+renderFeishuTableSelect();
+const hasCompleteRange=getTimeRangesFromUI().some(i=>i.startTime&&i.endTime);
+if(!formRestored||!hasCompleteRange){setTimeRanges([buildDefaultTimeRange()]);saveFormMemory()}
+const lastTaskId=loadLastTaskId();
+if(lastTaskId){$("#detail-task-id").value=lastTaskId;state.selectedTaskId=lastTaskId}
+state.listFolderFilter=$("#list-folder-filter").value||"";
+fetchFolders().then(fetchTasks).catch(async()=>{await fetchTasks()});
+fetchFeishuTables().catch((err)=>{const tip=$("#sync-feishu-result");if(tip)tip.textContent=`飞书子表加载失败：${String(err)}`});
+renderSummary(null);
+if(state.selectedTaskId)loadDetail();
+setInterval(async()=>{await fetchTasks();await refreshActiveTaskView()},5000);
+</script>
+</body>
+</html>

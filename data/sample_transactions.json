@@ -1,0 +1,86 @@
+[
+  {
+    "chain": "base",
+    "wallet": "0x1111111111111111111111111111111111111111",
+    "txHash": "0xaaa1",
+    "timestamp": "2026-02-09T00:10:00Z",
+    "usdtOut": "100",
+    "usdtIn": "0",
+    "tokenIn": "500",
+    "tokenOut": "0",
+    "gasNative": "0.00030",
+    "gasUsd": "0.95"
+  },
+  {
+    "chain": "base",
+    "wallet": "0x1111111111111111111111111111111111111111",
+    "txHash": "0xaaa2",
+    "timestamp": "2026-02-09T00:15:00Z",
+    "usdtOut": "0",
+    "usdtIn": "98",
+    "tokenIn": "0",
+    "tokenOut": "500",
+    "gasNative": "0.00031",
+    "gasUsd": "0.97"
+  },
+  {
+    "chain": "base",
+    "wallet": "0x1111111111111111111111111111111111111111",
+    "txHash": "0xbbb1",
+    "timestamp": "2026-02-09T01:00:00Z",
+    "usdtOut": "120",
+    "usdtIn": "0",
+    "tokenIn": "600",
+    "tokenOut": "0",
+    "gasNative": "0.00040",
+    "gasUsd": "1.20"
+  },
+  {
+    "chain": "base",
+    "wallet": "0x1111111111111111111111111111111111111111",
+    "txHash": "0xbbb2",
+    "timestamp": "2026-02-09T01:08:00Z",
+    "usdtOut": "0",
+    "usdtIn": "60",
+    "tokenIn": "0",
+    "tokenOut": "300",
+    "gasNative": "0.00041",
+    "gasUsd": "1.18"
+  },
+  {
+    "chain": "base",
+    "wallet": "0x1111111111111111111111111111111111111111",
+    "txHash": "0xbbb3",
+    "timestamp": "2026-02-09T01:15:00Z",
+    "usdtOut": "0",
+    "usdtIn": "58",
+    "tokenIn": "0",
+    "tokenOut": "300",
+    "gasNative": "0.00039",
+    "gasUsd": "1.16"
+  },
+  {
+    "chain": "base",
+    "wallet": "0x2222222222222222222222222222222222222222",
+    "txHash": "0xccc1",
+    "timestamp": "2026-02-09T00:25:00Z",
+    "usdtOut": "200",
+    "usdtIn": "0",
+    "tokenIn": "800",
+    "tokenOut": "0",
+    "gasNative": "0.00050",
+    "gasUsd": "1.40"
+  },
+  {
+    "chain": "base",
+    "wallet": "0x2222222222222222222222222222222222222222",
+    "txHash": "0xccc2",
+    "timestamp": "2026-02-09T00:33:00Z",
+    "usdtOut": "0",
+    "usdtIn": "194",
+    "tokenIn": "0",
+    "tokenOut": "800",
+    "gasNative": "0.00052",
+    "gasUsd": "1.39"
+  }
+]

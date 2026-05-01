@@ -1,0 +1,7 @@
+.venv/
+__pycache__/
+.pytest_cache/
+*.pyc
+okx_volume_stats.db
+test_okx_volume_stats.db
+.env
