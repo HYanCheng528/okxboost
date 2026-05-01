@@ -33,8 +33,8 @@ body{background:var(--bg);color:var(--text);font-family:"Segoe UI","PingFang SC"
 .form-group{display:flex;flex-direction:column;gap:5px}
 .form-group.full{grid-column:1/-1}
 .form-label{font-size:11px;color:var(--muted);font-weight:600;letter-spacing:.4px;text-transform:uppercase}
-input,select{background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:9px 12px;font-size:13px;width:100%;transition:border-color .15s;outline:none}
-input:focus,select:focus{border-color:var(--pri);box-shadow:0 0 0 3px var(--pri-glow)}
+input,select,textarea{background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:9px 12px;font-size:13px;width:100%;transition:border-color .15s;outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--pri);box-shadow:0 0 0 3px var(--pri-glow)}
 .flatpickr-input{cursor:pointer}
 .flatpickr-calendar{background:var(--card)!important;border:1px solid var(--border)!important;box-shadow:0 8px 24px rgba(0,0,0,.4)!important;font-family:inherit!important}
 .flatpickr-months .flatpickr-month,.flatpickr-current-month .flatpickr-monthDropdown-months,.flatpickr-current-month input.cur-year{background:var(--card)!important;color:var(--text)!important}
@@ -125,6 +125,10 @@ details.range-detail .range-body{padding:12px 14px}
       <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M0 1.75A.75.75 0 0 1 .75 1h4.253c1.227 0 2.317.59 3 1.501A3.743 3.743 0 0 1 11.006 1h4.245a.75.75 0 0 1 .75.75v10.5a.75.75 0 0 1-.75.75h-4.507a2.25 2.25 0 0 0-1.591.659l-.622.621a.75.75 0 0 1-1.06 0l-.622-.621A2.25 2.25 0 0 0 5.258 13H.75a.75.75 0 0 1-.75-.75Zm7.251 10.324.004-5.073-.002-2.253A2.25 2.25 0 0 0 5.003 2.5H1.5v9h3.757a3.75 3.75 0 0 1 1.994.574ZM8.755 4.75l-.004 7.322a3.752 3.752 0 0 1 1.992-.572H14.5v-9h-3.495a2.25 2.25 0 0 0-2.25 2.25Z"/></svg>
       任务详情
     </div>
+    <div class="nav-item" data-panel="addressbook">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M2 2.75C2 1.784 2.784 1 3.75 1h6.5c.966 0 1.75.784 1.75 1.75v1.5a.75.75 0 0 1-1.5 0v-1.5a.25.25 0 0 0-.25-.25h-6.5a.25.25 0 0 0-.25.25v10.5c0 .138.112.25.25.25h6.5a.25.25 0 0 0 .25-.25v-1.5a.75.75 0 0 1 1.5 0v1.5A1.75 1.75 0 0 1 10.25 15h-6.5A1.75 1.75 0 0 1 2 13.25Zm9.22 2.47a.75.75 0 0 1 1.06 0l2.5 2.5a.75.75 0 0 1 0 1.06l-2.5 2.5a.75.75 0 1 1-1.06-1.06l1.22-1.22H6.75a.75.75 0 0 1 0-1.5h5.69l-1.22-1.22a.75.75 0 0 1 0-1.06Z"/></svg>
+      地址簿
+    </div>
   </div>
   <div class="sidebar-footer">链上刷量统计机器人 v1</div>
 </nav>
@@ -141,8 +145,8 @@ details.range-detail .range-body{padding:12px 14px}
         <div class="form-group"><label class="form-label">任务名称（可选）</label><input name="taskName" placeholder="例如：2月分段统计"></div>
         <div class="form-group"><label class="form-label">文件夹（可选）</label><select name="folderId" id="form-folder-select"><option value="">未分类</option></select></div>
         <div class="form-group"><label class="form-label">基准币种</label><select name="baseToken"><option value="USDT">USDT</option><option value="USDC">USDC</option></select></div>
-        <div class="form-group full"><label class="form-label">钱包地址（逗号分隔）</label><input name="wallets" value="0x1111111111111111111111111111111111111111" required></div>
-        <div class="form-group full"><label class="form-label">目标代币合约（Token CA）</label><input name="token" value="0xtoken000000000000000000000000000000000001" required></div>
+        <div class="form-group full"><label class="form-label">钱包地址（逗号分隔）<button type="button" id="pick-wallets-btn" class="btn btn-secondary btn-sm" style="margin-left:8px;vertical-align:middle">从地址簿选择</button></label><textarea name="wallets" rows="2" required style="resize:vertical;font-family:Consolas,monospace;font-size:12px">0x1111111111111111111111111111111111111111</textarea><div id="wallet-picker" style="display:none;position:relative;z-index:50;margin-top:4px;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px;max-height:200px;overflow-y:auto"></div></div>
+        <div class="form-group full"><label class="form-label">目标代币合约（Token CA）<button type="button" id="pick-token-btn" class="btn btn-secondary btn-sm" style="margin-left:8px;vertical-align:middle">从地址簿选择</button></label><input name="token" value="0xtoken000000000000000000000000000000000001" required><div id="token-picker" style="display:none;position:relative;z-index:50;margin-top:4px;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px;max-height:200px;overflow-y:auto"></div></div>
         <div class="form-group"><label class="form-label">Boost 倍数</label><input name="boostMultiplier" value="0.85" step="0.0001" required></div>
         <div class="form-group"><label class="form-label">尾差容忍值（Epsilon）</label><input name="epsilon" value="0.0001" step="0.0001" required></div>
         <div class="form-group"><label class="form-label">配对超时（分钟）</label><input name="pairTimeoutMinutes" value="30" step="1" required></div>
@@ -236,6 +240,41 @@ details.range-detail .range-body{padding:12px 14px}
     </div>
     <div class="btn-row"><button id="sync-feishu-btn" class="btn btn-secondary" type="button">同步到飞书</button></div>
     <p id="sync-feishu-result" class="result-text"></p>
+  </div>
+</div>
+
+<!-- Panel: 地址簿 -->
+<div class="panel" id="panel-addressbook">
+  <div class="page-header"><h2>地址簿</h2><p>管理常用钱包地址和代币合约，创建任务时可快速选择</p></div>
+  <div class="card">
+    <div class="card-title">钱包地址</div>
+    <div class="form-grid" style="grid-template-columns:1fr 2fr auto;align-items:end">
+      <div class="form-group"><label class="form-label">标签</label><input id="ab-wallet-label" placeholder="例如：主钱包"></div>
+      <div class="form-group"><label class="form-label">钱包地址</label><input id="ab-wallet-address" placeholder="0x..." style="font-family:Consolas,monospace;font-size:12px"></div>
+      <button type="button" id="ab-add-wallet" class="btn btn-primary">添加</button>
+    </div>
+    <p id="ab-wallet-result" class="result-text"></p>
+    <div class="table-wrap">
+      <table id="ab-wallet-table">
+        <thead><tr><th>标签</th><th>地址</th><th>添加时间</th><th>操作</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">代币合约</div>
+    <div class="form-grid" style="grid-template-columns:auto 2fr auto;align-items:end">
+      <div class="form-group"><label class="form-label">链</label><select id="ab-token-chain"><option value="bsc">BSC</option><option value="base">Base</option><option value="arbitrum">Arbitrum</option><option value="ethereum">Ethereum</option></select></div>
+      <div class="form-group"><label class="form-label">代币合约地址</label><input id="ab-token-address" placeholder="0x..." style="font-family:Consolas,monospace;font-size:12px"></div>
+      <button type="button" id="ab-add-token" class="btn btn-primary">添加</button>
+    </div>
+    <p id="ab-token-result" class="result-text"></p>
+    <div class="table-wrap">
+      <table id="ab-token-table">
+        <thead><tr><th>链</th><th>符号</th><th>名称</th><th>地址</th><th>精度</th><th>添加时间</th><th>操作</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
   </div>
 </div>
 
@@ -372,6 +411,24 @@ fetchFeishuTables().catch((err)=>{const tip=$("#sync-feishu-result");if(tip)tip.
 renderSummary(null);
 if(state.selectedTaskId)loadDetail();
 setInterval(async()=>{await fetchTasks();await refreshActiveTaskView()},5000);
+
+// --- Address Book ---
+state.savedWallets=[];
+state.savedTokens=[];
+async function fetchSavedWallets(){const res=await fetch("/api/address-book/wallets");if(!res.ok)return;state.savedWallets=await res.json();renderWalletTable();renderWalletPicker()}
+async function fetchSavedTokens(){const res=await fetch("/api/address-book/tokens");if(!res.ok)return;state.savedTokens=await res.json();renderTokenTable();renderTokenPicker()}
+function renderWalletTable(){const tbody=document.querySelector("#ab-wallet-table tbody");if(!tbody)return;tbody.innerHTML="";for(const w of state.savedWallets){const tr=document.createElement("tr");tr.innerHTML=`<td>${w.label}</td><td class="mono">${w.address}</td><td>${fmtTime(w.createdAt)}</td><td><button class="btn btn-danger btn-sm" data-id="${w.walletId}">删除</button></td>`;tr.querySelector("button").addEventListener("click",async()=>{await fetch(`/api/address-book/wallets/${w.walletId}`,{method:"DELETE"});await fetchSavedWallets()});tbody.appendChild(tr)}}
+function renderTokenTable(){const tbody=document.querySelector("#ab-token-table tbody");if(!tbody)return;tbody.innerHTML="";for(const t of state.savedTokens){const tr=document.createElement("tr");tr.innerHTML=`<td>${chainText(t.chain)}</td><td style="font-weight:600;color:var(--pri)">${t.symbol||"-"}</td><td>${t.name||"-"}</td><td class="mono">${t.address}</td><td>${t.decimals??"-"}</td><td>${fmtTime(t.createdAt)}</td><td><button class="btn btn-danger btn-sm" data-id="${t.tokenId}">删除</button></td>`;tr.querySelector("button").addEventListener("click",async()=>{await fetch(`/api/address-book/tokens/${t.tokenId}`,{method:"DELETE"});await fetchSavedTokens()});tbody.appendChild(tr)}}
+function renderWalletPicker(){const box=$("#wallet-picker");if(!box)return;if(state.savedWallets.length===0){box.innerHTML='<span style="font-size:12px;color:var(--muted)">地址簿为空，请先添加钱包</span>';return}const walletsInput=document.querySelector('[name="wallets"]');const current=(walletsInput?.value||"").split(",").map(s=>s.trim().toLowerCase()).filter(Boolean);box.innerHTML="";for(const w of state.savedWallets){const checked=current.includes(w.address.toLowerCase())?"checked":"";const row=document.createElement("label");row.style.cssText="display:flex;align-items:center;gap:8px;padding:4px 0;cursor:pointer;font-size:12px";row.innerHTML=`<input type="checkbox" value="${w.address}" ${checked} style="width:auto;accent-color:var(--pri)"><span style="color:var(--text);font-weight:500">${w.label}</span><span class="mono" style="font-size:11px">${w.address.slice(0,8)}...${w.address.slice(-6)}</span>`;row.querySelector("input").addEventListener("change",()=>{syncWalletPickerToInput()});box.appendChild(row)}}
+function syncWalletPickerToInput(){const box=$("#wallet-picker");if(!box)return;const checked=Array.from(box.querySelectorAll('input[type="checkbox"]:checked')).map(cb=>cb.value);const walletsInput=document.querySelector('[name="wallets"]');if(walletsInput){walletsInput.value=checked.join(",");saveFormMemory()}}
+function renderTokenPicker(){const box=$("#token-picker");if(!box)return;const chain=(document.querySelector('[name="chain"]')?.value||"").toLowerCase();const filtered=state.savedTokens.filter(t=>t.chain===chain);if(filtered.length===0){box.innerHTML='<span style="font-size:12px;color:var(--muted)">当前链无已保存代币</span>';return}box.innerHTML="";for(const t of filtered){const row=document.createElement("div");row.style.cssText="display:flex;align-items:center;gap:8px;padding:6px 4px;cursor:pointer;font-size:12px;border-radius:6px";row.innerHTML=`<span style="color:var(--pri);font-weight:600">${t.symbol||"?"}</span><span style="color:var(--text)">${t.name||""}</span><span class="mono" style="font-size:11px">${t.address.slice(0,8)}...${t.address.slice(-6)}</span>`;row.addEventListener("mouseenter",()=>{row.style.background="var(--card2)"});row.addEventListener("mouseleave",()=>{row.style.background=""});row.addEventListener("click",()=>{const tokenInput=document.querySelector('[name="token"]');if(tokenInput){tokenInput.value=t.address;saveFormMemory()}$("#token-picker").style.display="none"});box.appendChild(row)}}
+$("#pick-wallets-btn").addEventListener("click",()=>{const box=$("#wallet-picker");if(!box)return;renderWalletPicker();box.style.display=box.style.display==="none"?"block":"none"});
+$("#pick-token-btn").addEventListener("click",()=>{const box=$("#token-picker");if(!box)return;renderTokenPicker();box.style.display=box.style.display==="none"?"block":"none"});
+document.querySelector('[name="chain"]').addEventListener("change",()=>{renderTokenPicker()});
+$("#ab-add-wallet").addEventListener("click",async()=>{const label=$("#ab-wallet-label").value.trim();const address=$("#ab-wallet-address").value.trim();const result=$("#ab-wallet-result");if(!label||!address){result.textContent="请填写标签和地址。";return}result.textContent="正在添加...";const res=await fetch("/api/address-book/wallets",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({label,address})});const text=await res.text();if(!res.ok){result.textContent=`添加失败：${parseApiError(text)}`;return}result.textContent="添加成功";$("#ab-wallet-label").value="";$("#ab-wallet-address").value="";await fetchSavedWallets()});
+$("#ab-add-token").addEventListener("click",async()=>{const chain=$("#ab-token-chain").value;const address=$("#ab-token-address").value.trim();const result=$("#ab-token-result");if(!address){result.textContent="请填写代币合约地址。";return}result.textContent="正在解析代币信息...";const res=await fetch("/api/address-book/tokens",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({chain,address})});const text=await res.text();if(!res.ok){result.textContent=`添加失败：${parseApiError(text)}`;return}const data=JSON.parse(text);result.textContent=`添加成功：${data.symbol||"未知"} (${data.name||"未知"})`;$("#ab-token-address").value="";await fetchSavedTokens()});
+fetchSavedWallets();
+fetchSavedTokens();
 </script>
 </body>
 </html>

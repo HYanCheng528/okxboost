@@ -108,6 +108,29 @@ class TxCache(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
 
+class SavedWallet(Base):
+    __tablename__ = "saved_wallets"
+    __table_args__ = (UniqueConstraint("address", name="uq_saved_wallet_address"),)
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    label: Mapped[str] = mapped_column(String(128), index=True)
+    address: Mapped[str] = mapped_column(String(128), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+class SavedToken(Base):
+    __tablename__ = "saved_tokens"
+    __table_args__ = (UniqueConstraint("chain", "address", name="uq_saved_token_chain_address"),)
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    chain: Mapped[str] = mapped_column(String(32), index=True)
+    address: Mapped[str] = mapped_column(String(128), index=True)
+    name: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    symbol: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    decimals: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
 class Price(Base):
     __tablename__ = "prices"
     __table_args__ = (UniqueConstraint("asset_symbol", "bucket_ts", name="uq_price_bucket"),)

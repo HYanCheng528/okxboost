@@ -9,6 +9,7 @@ from fastapi.staticfiles import StaticFiles
 
 from .database import init_db
 from .routers.tasks import router as tasks_router
+from .routers.address_book import router as address_book_router
 
 
 @asynccontextmanager
@@ -25,6 +26,7 @@ app = FastAPI(
 )
 
 app.include_router(tasks_router)
+app.include_router(address_book_router)
 
 static_dir = Path(__file__).resolve().parent / "static"
 app.mount("/static", StaticFiles(directory=static_dir), name="static")

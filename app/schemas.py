@@ -187,3 +187,30 @@ class TaskFolderResponse(ApiModel):
     folder_id: str = Field(alias="folderId")
     name: str
     created_at: datetime = Field(alias="createdAt")
+
+
+class SavedWalletCreateRequest(ApiModel):
+    label: str
+    address: str
+
+
+class SavedWalletResponse(ApiModel):
+    wallet_id: str = Field(alias="walletId")
+    label: str
+    address: str
+    created_at: datetime = Field(alias="createdAt")
+
+
+class SavedTokenCreateRequest(ApiModel):
+    chain: str
+    address: str
+
+
+class SavedTokenResponse(ApiModel):
+    token_id: str = Field(alias="tokenId")
+    chain: str
+    address: str
+    name: str | None = None
+    symbol: str | None = None
+    decimals: int | None = None
+    created_at: datetime = Field(alias="createdAt")
