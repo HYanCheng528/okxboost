@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>链上刷量统计</title>
 <link rel="icon" type="image/svg+xml" href="/static/icon.svg">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
 <style>
 :root{--bg:#0d1117;--sidebar:#010409;--card:#161b22;--card2:#1c2128;--border:#30363d;--text:#e6edf3;--muted:#8b949e;--muted2:#6e7681;--pri:#00d4aa;--pri2:#00b894;--pri-glow:rgba(0,212,170,.12);--danger:#f85149;--success:#3fb950;--warning:#d29922;--info:#388bfd}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -33,7 +35,23 @@ body{background:var(--bg);color:var(--text);font-family:"Segoe UI","PingFang SC"
 .form-label{font-size:11px;color:var(--muted);font-weight:600;letter-spacing:.4px;text-transform:uppercase}
 input,select{background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:9px 12px;font-size:13px;width:100%;transition:border-color .15s;outline:none}
 input:focus,select:focus{border-color:var(--pri);box-shadow:0 0 0 3px var(--pri-glow)}
-input::placeholder{color:var(--muted2)}
+.flatpickr-input{cursor:pointer}
+.flatpickr-calendar{background:var(--card)!important;border:1px solid var(--border)!important;box-shadow:0 8px 24px rgba(0,0,0,.4)!important;font-family:inherit!important}
+.flatpickr-months .flatpickr-month,.flatpickr-current-month .flatpickr-monthDropdown-months,.flatpickr-current-month input.cur-year{background:var(--card)!important;color:var(--text)!important}
+.flatpickr-weekdays,.flatpickr-weekday{background:var(--card)!important;color:var(--muted)!important}
+.flatpickr-day{color:var(--text)!important;border-radius:6px!important}
+.flatpickr-day:hover{background:var(--card2)!important;border-color:var(--border)!important}
+.flatpickr-day.selected{background:var(--pri)!important;color:#000!important;border-color:var(--pri)!important}
+.flatpickr-day.today{border-color:var(--pri)!important}
+.flatpickr-day.prevMonthDay,.flatpickr-day.nextMonthDay{color:var(--muted2)!important}
+.flatpickr-months .flatpickr-prev-month,.flatpickr-months .flatpickr-next-month{fill:var(--text)!important;color:var(--text)!important}
+.flatpickr-months .flatpickr-prev-month:hover,.flatpickr-months .flatpickr-next-month:hover{fill:var(--pri)!important;color:var(--pri)!important}
+.flatpickr-time input,.flatpickr-time .flatpickr-am-pm{color:var(--text)!important;background:var(--bg)!important;border:1px solid var(--border)!important;border-radius:6px!important}
+.flatpickr-time .flatpickr-time-separator{color:var(--muted)!important}
+.numInputWrapper:hover{background:var(--card2)!important}
+.numInputWrapper span{border-color:var(--muted2)!important}
+.numInputWrapper span:hover{background:var(--pri-glow)!important}
+.numInputWrapper span svg path{fill:var(--text)!important}
 select option{background:var(--card)}
 .btn{border:none;border-radius:8px;padding:9px 16px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
 .btn:disabled{opacity:.4;cursor:not-allowed}
@@ -65,9 +83,13 @@ tr:hover td{background:var(--card2)}
 tr.selected td{background:var(--pri-glow)}
 .mono{font-family:"Consolas","Courier New",monospace;font-size:11px;color:var(--muted)}
 .tr-section{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px;margin-top:4px}
+.tr-section .time-range-row,.tr-section .append-range-row{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end;margin-bottom:8px}
+.tr-section .time-range-row .form-group,.tr-section .append-range-row .form-group{display:flex;flex-direction:column;gap:5px;min-width:0}
+@media(max-width:640px){.tr-section .time-range-row,.tr-section .append-range-row{grid-template-columns:1fr}}
 .tr-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
 .tr-header span{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px}
-.time-range-row,.append-range-row{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end;margin-bottom:8px}
+.time-range-row,.append-range-row{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end;margin-bottom:8px;width:100%}
+.time-range-row .form-group,.append-range-row .form-group{min-width:0}
 .result-text{font-size:12px;color:var(--muted);margin-top:8px;min-height:16px;line-height:1.5}
 details.range-detail{border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:6px}
 details.range-detail summary{padding:9px 14px;cursor:pointer;font-size:12px;font-weight:600;background:var(--bg);list-style:none;display:flex;align-items:center;gap:6px}
@@ -125,17 +147,15 @@ details.range-detail .range-body{padding:12px 14px}
         <div class="form-group"><label class="form-label">尾差容忍值（Epsilon）</label><input name="epsilon" value="0.0001" step="0.0001" required></div>
         <div class="form-group"><label class="form-label">配对超时（分钟）</label><input name="pairTimeoutMinutes" value="30" step="1" required></div>
         <div class="form-group"><label class="form-label">实际 Boost（可空）</label><input name="actualBoostVolume" step="0.0001" placeholder="例如 18719.08"></div>
-        <div class="form-group full">
-          <div class="tr-section">
-            <div class="tr-header"><span>时间段（UTC+8）</span><button id="add-time-range" class="btn btn-secondary btn-sm" type="button">+ 增加时间段</button></div>
-            <div id="time-range-list"></div>
-            <p style="font-size:11px;color:var(--muted);margin-top:6px">可添加多个时间段，提交后在同一个任务内统计。</p>
-          </div>
-        </div>
-        <div class="form-group full">
-          <button type="submit" class="btn btn-primary">开始统计</button>
-          <p id="create-result" class="result-text"></p>
-        </div>
+      </div>
+      <div class="tr-section" style="margin-top:12px">
+        <div class="tr-header"><span>时间段（UTC+8）</span><button id="add-time-range" class="btn btn-secondary btn-sm" type="button">+ 增加时间段</button></div>
+        <div id="time-range-list"></div>
+        <p style="font-size:11px;color:var(--muted);margin-top:6px">可添加多个时间段，提交后在同一个任务内统计。</p>
+      </div>
+      <div style="margin-top:14px">
+        <button type="submit" class="btn btn-primary">开始统计</button>
+        <p id="create-result" class="result-text"></p>
       </div>
     </form>
   </div>
@@ -220,7 +240,10 @@ details.range-detail .range-body{padding:12px 14px}
 </div>
 
 </main>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/zh.js"></script>
 <script>
+function initFlatpickr(el){if(!el||el._flatpickr)return;flatpickr(el,{enableTime:true,enableSeconds:true,time_24hr:true,dateFormat:"Y-m-dTH:i:S",altInput:true,altFormat:"Y/m/d H:i:S",locale:"zh",allowInput:true,theme:"dark",onClose:function(){saveFormMemory&&saveFormMemory()}});}
 const state={selectedTaskId:null,activeView:"detail",folders:[],listFolderFilter:"",appendDefaultsTaskId:null,expandedRangeTaskId:null,expandedRangeIndexes:new Set(),feishuTables:[],feishuTaskTableMap:{}};
 const STORAGE_KEYS={form:"okx_stats_form_v1",lastTaskId:"okx_stats_last_task_id_v1",feishuSync:"okx_stats_feishu_sync_v1"};
 const FORM_FIELD_NAMES=["taskName","folderId","chain","wallets","token","baseToken","boostMultiplier","epsilon","pairTimeoutMinutes","actualBoostVolume"];
@@ -253,12 +276,12 @@ function switchToPanel(name){
   document.querySelectorAll(".panel").forEach(p=>p.classList.toggle("active",p.id==="panel-"+name));
 }
 
-function createTimeRangeRow(range){const row=document.createElement("div");row.className="time-range-row";row.innerHTML=`<div class="form-group"><label class="form-label">开始时间 (UTC+8)</label><input class="time-start" type="datetime-local" step="1" required></div><div class="form-group"><label class="form-label">结束时间 (UTC+8)</label><input class="time-end" type="datetime-local" step="1" required></div><div class="form-group" style="justify-content:flex-end;padding-top:16px"><button type="button" class="remove-time-range btn btn-danger btn-sm">删除</button></div>`;row.querySelector(".time-start").value=range.startTime||"";row.querySelector(".time-end").value=range.endTime||"";row.querySelector(".remove-time-range").addEventListener("click",()=>{const list=$("#time-range-list");if(!list||list.children.length<=1)return;row.remove();syncTimeRangeButtons();saveFormMemory()});return row}
+function createTimeRangeRow(range){const row=document.createElement("div");row.className="time-range-row";row.innerHTML=`<div class="form-group"><label class="form-label">开始时间 (UTC+8)</label><input class="time-start" type="text" placeholder="选择开始时间" required style="width:100%;min-width:0;display:block"></div><div class="form-group"><label class="form-label">结束时间 (UTC+8)</label><input class="time-end" type="text" placeholder="选择结束时间" required style="width:100%;min-width:0;display:block"></div><div class="form-group" style="justify-content:flex-end;padding-top:16px"><button type="button" class="remove-time-range btn btn-danger btn-sm">删除</button></div>`;const startInput=row.querySelector(".time-start");const endInput=row.querySelector(".time-end");if(range.startTime)startInput.value=range.startTime;if(range.endTime)endInput.value=range.endTime;initFlatpickr(startInput);initFlatpickr(endInput);row.querySelector(".remove-time-range").addEventListener("click",()=>{const list=$("#time-range-list");if(!list||list.children.length<=1)return;row.remove();syncTimeRangeButtons();saveFormMemory()});return row}
 const getTimeRangesFromUI=()=>Array.from(document.querySelectorAll("#time-range-list .time-range-row")).map(r=>({startTime:r.querySelector(".time-start")?.value?.trim()||"",endTime:r.querySelector(".time-end")?.value?.trim()||""}));
 function setTimeRanges(ranges){const list=$("#time-range-list");if(!list)return;list.innerHTML="";const safe=Array.isArray(ranges)&&ranges.length>0?ranges:[buildDefaultTimeRange()];for(const r of safe)list.appendChild(createTimeRangeRow(r));syncTimeRangeButtons()}
 function syncTimeRangeButtons(){const btns=Array.from(document.querySelectorAll(".remove-time-range"));const dis=btns.length<=1;for(const b of btns)b.disabled=dis}
 function buildNextTimeRange(){const arr=getTimeRangesFromUI();if(arr.length===0)return buildDefaultTimeRange();const last=arr[arr.length-1];if(!last.endTime)return buildDefaultTimeRange();const sIso=toIsoZ(last.endTime);if(!sIso)return buildDefaultTimeRange();const s=new Date(sIso);if(Number.isNaN(s.getTime()))return buildDefaultTimeRange();const e=new Date(s.getTime()+2*60*60*1000);return{startTime:toUtc8InputValueFromDate(s),endTime:toUtc8InputValueFromDate(e)}}
-function createAppendRangeRow(range){const row=document.createElement("div");row.className="append-range-row";row.innerHTML=`<div class="form-group"><label class="form-label">开始时间 (UTC+8)</label><input class="append-time-start" type="datetime-local" step="1" required></div><div class="form-group"><label class="form-label">结束时间 (UTC+8)</label><input class="append-time-end" type="datetime-local" step="1" required></div><div class="form-group" style="justify-content:flex-end;padding-top:16px"><button type="button" class="remove-append-range btn btn-danger btn-sm">删除</button></div>`;row.querySelector(".append-time-start").value=range.startTime||"";row.querySelector(".append-time-end").value=range.endTime||"";row.querySelector(".remove-append-range").addEventListener("click",()=>{const list=$("#append-range-list");if(!list||list.children.length<=1)return;row.remove();syncAppendRangeButtons()});return row}
+function createAppendRangeRow(range){const row=document.createElement("div");row.className="append-range-row";row.innerHTML=`<div class="form-group"><label class="form-label">开始时间 (UTC+8)</label><input class="append-time-start" type="text" placeholder="选择开始时间" required style="width:100%;min-width:0;display:block"></div><div class="form-group"><label class="form-label">结束时间 (UTC+8)</label><input class="append-time-end" type="text" placeholder="选择结束时间" required style="width:100%;min-width:0;display:block"></div><div class="form-group" style="justify-content:flex-end;padding-top:16px"><button type="button" class="remove-append-range btn btn-danger btn-sm">删除</button></div>`;const startInput=row.querySelector(".append-time-start");const endInput=row.querySelector(".append-time-end");if(range.startTime)startInput.value=range.startTime;if(range.endTime)endInput.value=range.endTime;initFlatpickr(startInput);initFlatpickr(endInput);row.querySelector(".remove-append-range").addEventListener("click",()=>{const list=$("#append-range-list");if(!list||list.children.length<=1)return;row.remove();syncAppendRangeButtons()});return row}
 const getAppendRangesFromUI=()=>Array.from(document.querySelectorAll("#append-range-list .append-range-row")).map(r=>({startTime:r.querySelector(".append-time-start")?.value?.trim()||"",endTime:r.querySelector(".append-time-end")?.value?.trim()||""}));
 function setAppendRanges(ranges){const list=$("#append-range-list");if(!list)return;list.innerHTML="";const safe=Array.isArray(ranges)&&ranges.length>0?ranges:[buildDefaultTimeRange()];for(const r of safe)list.appendChild(createAppendRangeRow(r));syncAppendRangeButtons()}
 function syncAppendRangeButtons(){const btns=Array.from(document.querySelectorAll(".remove-append-range"));const dis=btns.length<=1;for(const b of btns)b.disabled=dis}
