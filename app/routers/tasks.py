@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 
 from ..config import get_settings
 from ..database import get_db
-from ..models import Cycle, Task, TaskFolder
+from ..models import Cycle, ParsedTransaction, SavedWallet, Task, TaskFolder, TaskScanRange
 from ..schemas import (
     TaskAppendRangesRequest,
     CycleItem,
@@ -39,7 +39,9 @@ from ..services.feishu_bitable import FeishuBitableService, FeishuFieldMapping
 from ..services.task_progress import (
     clear_task_runtime_state,
     get_task_progress,
+    is_task_active,
     is_task_cancel_requested,
+    mark_task_active,
     request_task_cancel,
     set_task_progress,
 )
@@ -387,6 +389,14 @@ def create_task(
 ) -> TaskCreateResponse:
     if not payload.wallets:
         raise HTTPException(status_code=400, detail="wallets cannot be empty")
+    tokens = payload.normalized_tokens()
+    if not tokens:
+        raise HTTPException(status_code=400, detail="tokens cannot be empty")
+    if len(tokens) != 1:
+        raise HTTPException(
+            status_code=400,
+            detail="one task supports exactly one target token; create separate tasks for multiple tokens",
+        )
     _validate_runtime_requirements(payload)
 
     ranges = _normalize_time_ranges(payload)
@@ -407,7 +417,7 @@ def create_task(
         folder_id=folder_id,
         chain=payload.chain.lower(),
         wallets_json=json.dumps(wallets),
-        token=payload.token.lower(),
+        token=",".join(tokens),
         base_token=payload.base_token.upper(),
         time_ranges_json=_time_ranges_to_json(ranges),
         start_time=ranges[0][0],
@@ -422,8 +432,9 @@ def create_task(
     db.commit()
     db.refresh(task)
     set_task_progress(task.id, percent=2, stage="Queued", message="Task created, waiting to run.")
+    mark_task_active(task.id)
 
-    background_tasks.add_task(run_task, task.id)
+    background_tasks.add_task(run_task, task.id, ranges)
     progress = _progress_payload(task)
     return TaskCreateResponse(
         taskId=task.id,
@@ -469,9 +480,10 @@ def append_task_ranges(
         task.id,
         percent=2,
         stage="Queued",
-        message=f"Added {len(appended_ranges)} range(s), re-scanning task.",
+        message=f"Added {len(appended_ranges)} range(s), fetching only new chain segments and rebuilding stats.",
     )
-    background_tasks.add_task(run_task, task.id)
+    mark_task_active(task.id)
+    background_tasks.add_task(run_task, task.id, appended_ranges)
     progress = _progress_payload(task)
     return TaskCreateResponse(
         taskId=task.id,
@@ -599,6 +611,14 @@ def cancel_task(task_id: str, db: Session = Depends(get_db)) -> TaskActionRespon
         raise HTTPException(status_code=404, detail="task not found")
 
     if task.status == "running":
+        if not is_task_active(task.id):
+            task.status = "canceled"
+            task.error_message = "Task was marked running, but no active worker exists. Canceled directly."
+            db.commit()
+            db.refresh(task)
+            clear_task_runtime_state(task.id)
+            return _action_response_from_task(task)
+
         request_task_cancel(task.id)
         set_task_progress(
             task.id,
@@ -620,11 +640,15 @@ def delete_task(task_id: str, db: Session = Depends(get_db)) -> TaskActionRespon
     if task is None:
         raise HTTPException(status_code=404, detail="task not found")
 
-    if task.status == "running" or is_task_cancel_requested(task.id):
+    if task.status == "running" and is_task_active(task.id):
         raise HTTPException(status_code=409, detail="task is running, cancel it before deleting")
+    if is_task_cancel_requested(task.id) and is_task_active(task.id):
+        raise HTTPException(status_code=409, detail="task is canceling, wait before deleting")
 
     response = _action_response_from_task(task)
     db.execute(delete(Cycle).where(Cycle.task_id == task.id))
+    db.execute(delete(ParsedTransaction).where(ParsedTransaction.task_id == task.id))
+    db.execute(delete(TaskScanRange).where(TaskScanRange.task_id == task.id))
     db.delete(task)
     db.commit()
     clear_task_runtime_state(task.id)
@@ -685,9 +709,7 @@ def sync_task_to_feishu(
 
     _validate_feishu_requirements()
 
-    table_id = payload.table_id.strip()
-    if not table_id:
-        raise HTTPException(status_code=400, detail="tableId cannot be empty")
+    table_id = (payload.table_id or "").strip()
 
     date_field = payload.date_field.strip()
     trade_before_field = payload.trade_before_field.strip()
@@ -702,11 +724,6 @@ def sync_task_to_feishu(
         if selected_wallet not in task_wallets:
             raise HTTPException(status_code=400, detail=f"wallet not in task: {selected_wallet}")
 
-    stmt = select(Cycle).where(Cycle.task_id == task_id)
-    if selected_wallet:
-        stmt = stmt.where(Cycle.wallet == selected_wallet)
-    cycles = db.scalars(stmt.order_by(Cycle.cycle_index.asc())).all()
-
     service = FeishuBitableService(get_settings())
     field_mapping = FeishuFieldMapping(
         date_field=date_field,
@@ -716,11 +733,51 @@ def sync_task_to_feishu(
     )
 
     try:
-        appended_count = service.append_cycles(
-            table_id=table_id,
-            cycles=cycles,
-            field_mapping=field_mapping,
-        )
+        if selected_wallet:
+            if not table_id:
+                saved_wallet = db.scalar(select(SavedWallet).where(SavedWallet.address == selected_wallet))
+                table_id = (saved_wallet.feishu_trade_table_id if saved_wallet else None) or ""
+                if not table_id:
+                    raise HTTPException(status_code=400, detail=f"wallet has no linked Feishu trade table: {selected_wallet}")
+            cycles = db.scalars(
+                select(Cycle)
+                .where(Cycle.task_id == task_id, Cycle.wallet == selected_wallet)
+                .order_by(Cycle.cycle_index.asc())
+            ).all()
+            appended_count = service.append_cycles(table_id=table_id, cycles=cycles, field_mapping=field_mapping)
+            response_table_id = table_id
+        elif table_id:
+            cycles = db.scalars(
+                select(Cycle).where(Cycle.task_id == task_id).order_by(Cycle.cycle_index.asc())
+            ).all()
+            appended_count = service.append_cycles(table_id=table_id, cycles=cycles, field_mapping=field_mapping)
+            response_table_id = table_id
+        else:
+            task_wallets = [item.lower() for item in _parse_wallets(task)]
+            saved_wallets = db.scalars(select(SavedWallet).where(SavedWallet.address.in_(task_wallets))).all()
+            wallet_table_map = {
+                item.address.lower(): (item.feishu_trade_table_id or "").strip()
+                for item in saved_wallets
+            }
+            missing = [wallet for wallet in task_wallets if not wallet_table_map.get(wallet)]
+            if missing:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"wallets missing Feishu trade table mapping: {', '.join(missing)}",
+                )
+            appended_count = 0
+            for wallet in task_wallets:
+                cycles = db.scalars(
+                    select(Cycle)
+                    .where(Cycle.task_id == task_id, Cycle.wallet == wallet)
+                    .order_by(Cycle.cycle_index.asc())
+                ).all()
+                appended_count += service.append_cycles(
+                    table_id=wallet_table_map[wallet],
+                    cycles=cycles,
+                    field_mapping=field_mapping,
+                )
+            response_table_id = "wallet_mappings"
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except RuntimeError as exc:
@@ -728,7 +785,7 @@ def sync_task_to_feishu(
 
     return TaskSyncFeishuResponse(
         taskId=task.id,
-        tableId=table_id,
+        tableId=response_table_id,
         wallet=selected_wallet,
         appendedCount=appended_count,
     )

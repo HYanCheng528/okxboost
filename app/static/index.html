@@ -1,16 +1,18 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>链上刷量统计</title>
+<title>BOOST Bot Console</title>
 <link rel="icon" type="image/svg+xml" href="/static/icon.svg">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
 <style>
 :root{--bg:#0d1117;--sidebar:#010409;--card:#161b22;--card2:#1c2128;--border:#30363d;--text:#e6edf3;--muted:#8b949e;--muted2:#6e7681;--pri:#00d4aa;--pri2:#00b894;--pri-glow:rgba(0,212,170,.12);--danger:#f85149;--success:#3fb950;--warning:#d29922;--info:#388bfd}
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--text);font-family:"Segoe UI","PingFang SC",system-ui,sans-serif;display:flex;min-height:100vh;font-size:14px}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI","PingFang SC",system-ui,sans-serif;display:flex;min-height:100vh;font-size:14px;overflow-x:hidden}
+.mobile-topbar{display:none}
+.mobile-nav-backdrop{display:none}
 .sidebar{width:220px;min-height:100vh;background:var(--sidebar);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;z-index:100}
 .sidebar-logo{padding:20px 16px 16px;border-bottom:1px solid var(--border)}
 .sidebar-logo h1{font-size:15px;font-weight:700;color:var(--pri);letter-spacing:.5px}
@@ -20,15 +22,16 @@ body{background:var(--bg);color:var(--text);font-family:"Segoe UI","PingFang SC"
 .nav-item:hover{background:var(--card);color:var(--text)}
 .nav-item.active{background:var(--pri-glow);color:var(--pri);border-color:rgba(0,212,170,.2)}
 .sidebar-footer{padding:12px 16px;border-top:1px solid var(--border);font-size:11px;color:var(--muted2)}
-.main{margin-left:220px;flex:1;padding:24px;min-height:100vh}
-.panel{display:none}.panel.active{display:block}
+.main{margin-left:220px;flex:1;padding:24px;min-height:100vh;min-width:0;overflow-x:hidden}
+.panel{display:none;min-width:0}.panel.active{display:block}
 .page-header{margin-bottom:20px}
 .page-header h2{font-size:20px;font-weight:700}
 .page-header p{font-size:13px;color:var(--muted);margin-top:4px}
-.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-top:16px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-top:16px;min-width:0}
 .card:first-child{margin-top:0}
 .card-title{font-size:13px;font-weight:600;color:var(--muted);margin-bottom:16px;text-transform:uppercase;letter-spacing:.6px;display:flex;align-items:center;gap:8px}
 .card-title::before{content:"";width:3px;height:13px;background:var(--pri);border-radius:2px;flex-shrink:0}
+.collapse-icon{display:inline-block;width:16px;text-align:center;font-size:10px;transition:transform .2s}
 .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
 .form-group{display:flex;flex-direction:column;gap:5px}
 .form-group.full{grid-column:1/-1}
@@ -91,6 +94,44 @@ tr.selected td{background:var(--pri-glow)}
 .time-range-row,.append-range-row{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end;margin-bottom:8px;width:100%}
 .time-range-row .form-group,.append-range-row .form-group{min-width:0}
 .result-text{font-size:12px;color:var(--muted);margin-top:8px;min-height:16px;line-height:1.5}
+.kpi-card{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:16px 20px;min-width:140px;display:flex;flex-direction:column;gap:4px}
+.kpi-label{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+.kpi-value{font-size:22px;font-weight:700;color:var(--pri)}
+.wallet-stat-card{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+.wallet-stat-info{display:flex;flex-direction:column;gap:4px}
+.wallet-stat-name{font-size:14px;font-weight:600;color:var(--text)}
+.wallet-stat-addr{font-size:11px;color:var(--muted2)}
+.wallet-stat-metrics{display:flex;gap:20px;flex-wrap:wrap}
+.wallet-stat-metric{display:flex;flex-direction:column;align-items:center;gap:2px}
+.wallet-stat-metric .metric-val{font-size:16px;font-weight:700;color:var(--text)}
+.wallet-stat-metric .metric-label{font-size:10px;color:var(--muted);text-transform:uppercase}
+.wallet-stat-due{padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600}
+.wallet-stat-due.overdue{background:rgba(248,81,73,.15);color:var(--danger)}
+.wallet-stat-due.soon{background:rgba(210,153,34,.15);color:var(--warning)}
+.wallet-stat-due.ok{background:rgba(63,185,80,.1);color:var(--success)}
+.copy-task-actions{display:grid;grid-template-columns:repeat(3,minmax(82px,1fr));gap:6px;min-width:360px}
+.copy-task-actions input{height:30px;padding:6px 8px;font-size:12px}
+.copy-task-buttons{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap}
+.copy-status-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin-top:12px}
+.copy-wallet-card{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:9px;min-width:0}
+.copy-wallet-card.sold{border-color:rgba(63,185,80,.55);box-shadow:inset 3px 0 0 rgba(63,185,80,.9)}
+.copy-wallet-card.pending{border-color:rgba(210,153,34,.55);box-shadow:inset 3px 0 0 rgba(210,153,34,.9)}
+.copy-wallet-card.failed{border-color:rgba(248,81,73,.55);box-shadow:inset 3px 0 0 rgba(248,81,73,.9)}
+.copy-wallet-card.idle{border-color:rgba(139,148,158,.35);box-shadow:inset 3px 0 0 rgba(139,148,158,.65)}
+.copy-wallet-head{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.copy-wallet-name{font-size:15px;font-weight:800;color:var(--text);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.copy-wallet-meta{font-size:11px;color:var(--muted);display:flex;gap:8px;flex-wrap:wrap}
+.copy-wallet-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.copy-wallet-metric{background:rgba(139,148,158,.08);border:1px solid rgba(139,148,158,.14);border-radius:8px;padding:7px 8px;min-width:0}
+.copy-wallet-metric span{display:block;font-size:10px;color:var(--muted);margin-bottom:3px}
+.copy-wallet-metric strong{display:block;font-size:12px;color:var(--text);font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.copy-wallet-error{font-size:11px;color:var(--danger);line-height:1.4;word-break:break-word}
+.copy-log-section{border:1px solid var(--border);border-radius:10px;margin-top:10px;overflow:hidden;background:var(--bg)}
+.copy-log-section summary{cursor:pointer;list-style:none;padding:10px 12px;font-size:12px;font-weight:700;color:var(--muted);display:flex;align-items:center;gap:8px}
+.copy-log-section summary::-webkit-details-marker{display:none}
+.copy-log-section summary::before{content:"▶";font-size:9px;transition:transform .15s;color:var(--muted2)}
+.copy-log-section[open] summary::before{transform:rotate(90deg)}
+.copy-log-section .table-wrap{border-top:1px solid var(--border)}
 details.range-detail{border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:6px}
 details.range-detail summary{padding:9px 14px;cursor:pointer;font-size:12px;font-weight:600;background:var(--bg);list-style:none;display:flex;align-items:center;gap:6px}
 details.range-detail summary::-webkit-details-marker{display:none}
@@ -98,19 +139,70 @@ details.range-detail summary::before{content:"▶";font-size:9px;color:var(--mut
 details.range-detail[open] summary::before{transform:rotate(90deg)}
 details.range-detail .range-body{padding:12px 14px}
 .empty-state{text-align:center;padding:32px;color:var(--muted);font-size:13px;border:1px dashed var(--border);border-radius:10px}
+.profit-hero{display:grid;grid-template-columns:minmax(260px,.9fr) minmax(360px,1.4fr);gap:16px;align-items:stretch}
+.profit-net-card{position:relative;overflow:hidden;background:radial-gradient(circle at 18% 10%,rgba(0,212,170,.22),transparent 34%),linear-gradient(135deg,#101820,#0b1118 62%,#061b17);border:1px solid rgba(0,212,170,.22);border-radius:16px;padding:22px}
+.profit-net-card::after{content:"";position:absolute;right:-52px;top:-52px;width:170px;height:170px;border-radius:50%;background:linear-gradient(135deg,rgba(0,212,170,.18),rgba(56,139,253,.08));filter:blur(2px)}
+.profit-net-label{font-size:12px;color:var(--muted);letter-spacing:.8px;text-transform:uppercase}
+.profit-net-value{font-size:38px;font-weight:800;line-height:1.05;margin-top:12px;font-variant-numeric:tabular-nums}
+.profit-net-sub{margin-top:10px;color:var(--muted);font-size:12px}
+.profit-metric-grid{display:grid;grid-template-columns:repeat(2,minmax(140px,1fr));gap:10px}
+.profit-metric{background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,0));border:1px solid var(--border);border-radius:14px;padding:14px}
+.profit-metric span{display:block;font-size:11px;color:var(--muted);margin-bottom:8px;letter-spacing:.4px;text-transform:uppercase}
+.profit-metric strong{font-size:20px;font-variant-numeric:tabular-nums}
+.profit-chart-shell{width:100%;max-width:100%;overflow:hidden;border:1px solid rgba(139,148,158,.22);border-radius:16px;background:radial-gradient(circle at 18% 8%,rgba(0,212,170,.07),transparent 30%),linear-gradient(180deg,rgba(22,27,34,.94),rgba(13,17,23,.98));padding:14px;box-shadow:inset 0 1px 0 rgba(255,255,255,.035)}
+.profit-chart-scroll{width:100%;max-width:100%;overflow-x:auto;overflow-y:hidden;padding-bottom:10px;scrollbar-width:thin;scrollbar-color:rgba(0,212,170,.75) rgba(139,148,158,.14)}
+.profit-chart-scroll::-webkit-scrollbar{height:10px}
+.profit-chart-scroll::-webkit-scrollbar-track{background:rgba(139,148,158,.12);border-radius:999px}
+.profit-chart-scroll::-webkit-scrollbar-thumb{background:linear-gradient(90deg,var(--pri),var(--info));border-radius:999px}
+.profit-chart-scroll svg{display:block;max-width:none}
+.profit-legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:10px}
+.profit-legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.profit-chart-legend{display:flex;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:10px;align-items:center}
+.profit-chart-legend span{display:inline-flex;align-items:center;gap:6px;background:rgba(139,148,158,.07);border:1px solid rgba(139,148,158,.14);border-radius:999px;padding:4px 8px}
+.profit-chart-legend i{display:inline-block;width:8px;height:8px;border-radius:50%}
+.profit-source{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:12px}
+.profit-source-card{border:1px solid var(--border);border-radius:12px;background:var(--bg);padding:12px}
+.profit-source-card span{display:block;font-size:11px;color:var(--muted);margin-bottom:6px}
+.profit-source-card strong{font-size:16px;color:var(--text)}
+.profit-adjust-list{display:grid;gap:8px;margin-top:12px}
+.profit-adjust-row{display:flex;justify-content:space-between;gap:12px;align-items:center;border:1px solid var(--border);background:var(--bg);border-radius:10px;padding:10px 12px}
+.profit-adjust-row small{display:block;color:var(--muted);margin-top:3px}
+.profit-month-list{display:flex;flex-direction:column;gap:6px;max-width:360px}
+.profit-month-pill{display:grid;grid-template-columns:70px 1fr auto;gap:10px;align-items:center;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:8px 10px;font-size:12px}
+.profit-month-bar{height:6px;border-radius:999px;background:var(--card2);overflow:hidden}
+.profit-month-bar span{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--pri),var(--info))}
+@media(max-width:900px){.profit-hero{grid-template-columns:1fr}.profit-net-value{font-size:30px}}
 .pill{display:inline-block;background:var(--card2);border:1px solid var(--border);border-radius:999px;padding:2px 8px;font-size:11px;color:var(--muted)}
 .filter-row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px}
 .filter-row .form-group{min-width:160px}
 .sub-box{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px;margin-top:12px}
 .sub-box-title{font-size:11px;font-weight:600;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:.4px}
-@media(max-width:900px){.main{margin-left:0;padding:16px}.sidebar{display:none}}
+@media(max-width:900px){
+body{display:block}
+.mobile-topbar{position:fixed;top:0;left:0;right:0;height:54px;display:flex;align-items:center;gap:12px;background:rgba(1,4,9,.94);border-bottom:1px solid var(--border);backdrop-filter:blur(10px);z-index:220;padding:0 14px}
+.mobile-menu-btn{width:38px;height:38px;border:1px solid var(--border);border-radius:10px;background:var(--card);color:var(--text);font-size:20px;line-height:1;display:inline-flex;align-items:center;justify-content:center}
+.mobile-title{font-weight:700;color:var(--pri);letter-spacing:.5px}
+.mobile-nav-backdrop.open{display:block;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:240}
+.sidebar{display:flex;width:min(82vw,280px);transform:translateX(-105%);transition:transform .2s ease;z-index:250;box-shadow:18px 0 40px rgba(0,0,0,.45)}
+.sidebar.open{transform:translateX(0)}
+.main{margin-left:0;padding:70px 12px 16px;min-width:0;overflow-x:hidden}
+.card{padding:14px}
+.form-grid{grid-template-columns:1fr}
+.profit-hero{grid-template-columns:1fr}
+.profit-net-value{font-size:30px}
+}
 </style>
 </head>
 <body>
+<div class="mobile-topbar">
+  <button type="button" id="mobile-menu-btn" class="mobile-menu-btn" aria-label="打开导航">☰</button>
+  <span class="mobile-title">BOOST Console</span>
+</div>
+<div id="mobile-nav-backdrop" class="mobile-nav-backdrop"></div>
 <nav class="sidebar">
   <div class="sidebar-logo">
-    <h1>⛓ 链上统计</h1>
-    <p>仅统计，不下单</p>
+    <h1>BOOST Console</h1>
+    <p>Private automation panel</p>
   </div>
   <div class="sidebar-nav">
     <div class="nav-item active" data-panel="create">
@@ -129,8 +221,28 @@ details.range-detail .range-body{padding:12px 14px}
       <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M2 2.75C2 1.784 2.784 1 3.75 1h6.5c.966 0 1.75.784 1.75 1.75v1.5a.75.75 0 0 1-1.5 0v-1.5a.25.25 0 0 0-.25-.25h-6.5a.25.25 0 0 0-.25.25v10.5c0 .138.112.25.25.25h6.5a.25.25 0 0 0 .25-.25v-1.5a.75.75 0 0 1 1.5 0v1.5A1.75 1.75 0 0 1 10.25 15h-6.5A1.75 1.75 0 0 1 2 13.25Zm9.22 2.47a.75.75 0 0 1 1.06 0l2.5 2.5a.75.75 0 0 1 0 1.06l-2.5 2.5a.75.75 0 1 1-1.06-1.06l1.22-1.22H6.75a.75.75 0 0 1 0-1.5h5.69l-1.22-1.22a.75.75 0 0 1 0-1.06Z"/></svg>
       地址簿
     </div>
+    <div class="nav-item" data-panel="detect">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M10.68 11.74a6 6 0 0 1-7.922-8.982 6 6 0 0 1 8.982 7.922l3.04 3.04a.749.749 0 1 1-1.06 1.06l-3.04-3.04ZM11.5 7a4.499 4.499 0 1 0-8.997 0A4.499 4.499 0 0 0 11.5 7Z"/></svg>
+      一键检测
+    </div>
+    <div class="nav-item" data-panel="rewards">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M2 2.75A1.75 1.75 0 0 1 3.75 1h8.5A1.75 1.75 0 0 1 14 2.75v2.5A1.75 1.75 0 0 1 12.25 7h-.44a4.502 4.502 0 0 1-2.31 2.224V11.5h1.75a.75.75 0 0 1 0 1.5h-6.5a.75.75 0 0 1 0-1.5H6.5V9.224A4.502 4.502 0 0 1 4.19 7h-.44A1.75 1.75 0 0 1 2 5.25v-2.5Zm3.5-.25v2A3 3 0 1 0 11.5 4.5v-2h-6Zm-1.5 3V2.75a.25.25 0 0 0-.25-.25h-.25v2.75c0 .138.112.25.25.25H4Zm8.25 0a.25.25 0 0 0 .25-.25V2.5h-.25a.25.25 0 0 0-.25.25V5.5h.25Z"/></svg>
+      空投检测
+    </div>
+    <div class="nav-item" data-panel="copysell">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M2.75 2A1.75 1.75 0 0 0 1 3.75v2.5C1 7.216 1.784 8 2.75 8h1.5A1.75 1.75 0 0 0 6 6.25v-2.5A1.75 1.75 0 0 0 4.25 2h-1.5ZM2.5 3.75a.25.25 0 0 1 .25-.25h1.5a.25.25 0 0 1 .25.25v2.5a.25.25 0 0 1-.25.25h-1.5a.25.25 0 0 1-.25-.25v-2.5Zm9.25 4.25A1.75 1.75 0 0 0 10 9.75v2.5c0 .966.784 1.75 1.75 1.75h1.5A1.75 1.75 0 0 0 15 12.25v-2.5A1.75 1.75 0 0 0 13.25 8h-1.5Zm-.25 1.75a.25.25 0 0 1 .25-.25h1.5a.25.25 0 0 1 .25.25v2.5a.25.25 0 0 1-.25.25h-1.5a.25.25 0 0 1-.25-.25v-2.5ZM7.78 4.22a.75.75 0 0 1 1.06 0l2 2a.75.75 0 0 1 0 1.06l-2 2a.75.75 0 0 1-1.06-1.06l.72-.72H7.25a.75.75 0 0 1 0-1.5H8.5l-.72-.72a.75.75 0 0 1 0-1.06Z"/></svg>
+      跟单卖出
+    </div>
+    <div class="nav-item" data-panel="dashboard">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 1.75V13.5h13.5a.75.75 0 0 1 0 1.5H.75a.75.75 0 0 1-.75-.75V1.75a.75.75 0 0 1 1.5 0Zm14.28 2.53-5.25 5.25a.75.75 0 0 1-1.06 0L7 7.06 4.28 9.78a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042l3.25-3.25a.75.75 0 0 1 1.06 0L10 7.94l4.72-4.72a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042Z"/></svg>
+      数据总览
+    </div>
+    <div class="nav-item" data-panel="profit">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 13.25a.75.75 0 0 0 .75.75h11.5a.75.75 0 0 0 0-1.5H3V2.25a.75.75 0 0 0-1.5 0v11Zm12.28-8.97a.75.75 0 0 0-1.06-1.06L9.5 6.44 7.53 4.47a.75.75 0 0 0-1.06 0l-3 3a.75.75 0 1 0 1.06 1.06L7 6.06l1.97 1.97a.75.75 0 0 0 1.06 0l3.75-3.75Z"/></svg>
+      盈亏总览
+    </div>
   </div>
-  <div class="sidebar-footer">链上刷量统计机器人 v1</div>
+  <div class="sidebar-footer">BOOST Bot Console v1</div>
 </nav>
 <main class="main">
 
@@ -141,13 +253,13 @@ details.range-detail .range-body{padding:12px 14px}
     <div class="card-title">任务参数</div>
     <form id="task-form">
       <div class="form-grid">
-        <div class="form-group"><label class="form-label">统计链</label><select name="chain"><option value="bsc">BSC</option><option value="base">Base</option><option value="arbitrum">Arbitrum</option><option value="ethereum">Ethereum</option></select></div>
+        <div class="form-group"><label class="form-label">统计链</label><select name="chain"><option value="bsc">BSC</option><option value="base">Base</option><option value="arbitrum">Arbitrum</option><option value="ethereum">Ethereum</option><option value="xlayer">X Layer</option></select></div>
         <div class="form-group"><label class="form-label">任务名称（可选）</label><input name="taskName" placeholder="例如：2月分段统计"></div>
         <div class="form-group"><label class="form-label">文件夹（可选）</label><select name="folderId" id="form-folder-select"><option value="">未分类</option></select></div>
         <div class="form-group"><label class="form-label">基准币种</label><select name="baseToken"><option value="USDT">USDT</option><option value="USDC">USDC</option></select></div>
         <div class="form-group full"><label class="form-label">钱包地址（逗号分隔）<button type="button" id="pick-wallets-btn" class="btn btn-secondary btn-sm" style="margin-left:8px;vertical-align:middle">从地址簿选择</button></label><textarea name="wallets" rows="2" required style="resize:vertical;font-family:Consolas,monospace;font-size:12px">0x1111111111111111111111111111111111111111</textarea><div id="wallet-picker" style="display:none;position:relative;z-index:50;margin-top:4px;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px;max-height:200px;overflow-y:auto"></div></div>
         <div class="form-group full"><label class="form-label">目标代币合约（Token CA）<button type="button" id="pick-token-btn" class="btn btn-secondary btn-sm" style="margin-left:8px;vertical-align:middle">从地址簿选择</button></label><input name="token" value="0xtoken000000000000000000000000000000000001" required><div id="token-picker" style="display:none;position:relative;z-index:50;margin-top:4px;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px;max-height:200px;overflow-y:auto"></div></div>
-        <div class="form-group"><label class="form-label">Boost 倍数</label><input name="boostMultiplier" value="0.85" step="0.0001" required></div>
+        <div class="form-group"><label class="form-label">Boost 倍数</label><input name="boostMultiplier" value="0.6" step="0.0001" required></div>
         <div class="form-group"><label class="form-label">尾差容忍值（Epsilon）</label><input name="epsilon" value="0.0001" step="0.0001" required></div>
         <div class="form-group"><label class="form-label">配对超时（分钟）</label><input name="pairTimeoutMinutes" value="30" step="1" required></div>
         <div class="form-group"><label class="form-label">实际 Boost（可空）</label><input name="actualBoostVolume" step="0.0001" placeholder="例如 18719.08"></div>
@@ -167,21 +279,12 @@ details.range-detail .range-body{padding:12px 14px}
 
 <!-- Panel: 任务列表 -->
 <div class="panel" id="panel-list">
-  <div class="page-header"><h2>任务列表</h2><p>点击任务行跳转到详情</p></div>
+  <div class="page-header"><h2>任务列表</h2><p>按钱包分组展示，点击任务行跳转到详情</p></div>
   <div class="card">
     <div class="filter-row">
-      <div class="form-group"><label class="form-label">文件夹筛选</label><select id="list-folder-filter"><option value="">全部</option><option value="none">未分类</option></select></div>
-      <div class="form-group"><label class="form-label">新建文件夹</label><input id="new-folder-name" placeholder="例如：项目A"></div>
-      <button id="create-folder-btn" class="btn btn-secondary" type="button">创建文件夹</button>
       <button id="refresh-tasks" class="btn btn-secondary" type="button">刷新</button>
     </div>
-    <p id="folder-op-result" class="result-text"></p>
-    <div class="table-wrap">
-      <table id="tasks-table">
-        <thead><tr><th>任务 ID</th><th>文件夹</th><th>任务名</th><th>状态</th><th>进度</th><th>时间段</th><th>链</th><th>总交易量</th><th>Cycle 数</th></tr></thead>
-        <tbody></tbody>
-      </table>
-    </div>
+    <div id="tasks-by-wallet-container"></div>
   </div>
 </div>
 
@@ -193,10 +296,7 @@ details.range-detail .range-body{padding:12px 14px}
     <div class="card-title">选择任务</div>
     <div class="form-grid">
       <div class="form-group"><label class="form-label">任务 ID</label><input id="detail-task-id" placeholder="输入任务 ID 或从列表点击"></div>
-      <div class="form-group"><label class="form-label">归属文件夹</label><select id="detail-folder-select"><option value="">未分类</option></select></div>
-      <div class="form-group" style="justify-content:flex-end;padding-top:16px"><button id="assign-folder-btn" class="btn btn-secondary" type="button">保存分类</button></div>
     </div>
-    <p id="assign-folder-result" class="result-text"></p>
     <div class="btn-row">
       <button id="load-detail" class="btn btn-primary" type="button">查看详情</button>
       <button id="load-cycles" class="btn btn-secondary" type="button">查看配对记录</button>
@@ -232,12 +332,14 @@ details.range-detail .range-body{padding:12px 14px}
   <div class="card">
     <div class="card-title">同步到飞书多维表格（只追加）</div>
     <div class="form-grid">
+      <div class="form-group"><label class="form-label">同步钱包</label><select id="feishu-wallet-select"><option value="">自动按地址簿关联</option></select></div>
       <div class="form-group"><label class="form-label">飞书子表</label><select id="feishu-table-select"><option value="">请选择飞书子表</option></select></div>
       <div class="form-group"><label class="form-label">日期字段</label><input id="feishu-date-field" value="日期"></div>
       <div class="form-group"><label class="form-label">交易前字段</label><input id="feishu-before-field" value="交易前"></div>
       <div class="form-group"><label class="form-label">交易后字段</label><input id="feishu-after-field" value="交易后"></div>
       <div class="form-group"><label class="form-label">Gas(USD)字段</label><input id="feishu-gas-field" value="gas费"></div>
     </div>
+    <p style="font-size:12px;color:var(--muted);margin-top:6px">不选飞书子表时，会按地址簿里每个钱包绑定的“交易记录子表”自动分发。</p>
     <div class="btn-row"><button id="sync-feishu-btn" class="btn btn-secondary" type="button">同步到飞书</button></div>
     <p id="sync-feishu-result" class="result-text"></p>
   </div>
@@ -248,15 +350,16 @@ details.range-detail .range-body{padding:12px 14px}
   <div class="page-header"><h2>地址簿</h2><p>管理常用钱包地址和代币合约，创建任务时可快速选择</p></div>
   <div class="card">
     <div class="card-title">钱包地址</div>
-    <div class="form-grid" style="grid-template-columns:1fr 2fr auto;align-items:end">
+    <div class="form-grid" style="grid-template-columns:1fr 2fr 2fr auto;align-items:end">
       <div class="form-group"><label class="form-label">标签</label><input id="ab-wallet-label" placeholder="例如：主钱包"></div>
-      <div class="form-group"><label class="form-label">钱包地址</label><input id="ab-wallet-address" placeholder="0x..." style="font-family:Consolas,monospace;font-size:12px"></div>
+      <div class="form-group"><label class="form-label">EVM 钱包地址</label><input id="ab-wallet-address" placeholder="0x..." style="font-family:Consolas,monospace;font-size:12px"></div>
+      <div class="form-group"><label class="form-label">绑定 Solana 地址（可选）</label><input id="ab-wallet-solana-address" placeholder="Solana 钱包地址" style="font-family:Consolas,monospace;font-size:12px"></div>
       <button type="button" id="ab-add-wallet" class="btn btn-primary">添加</button>
     </div>
     <p id="ab-wallet-result" class="result-text"></p>
     <div class="table-wrap">
       <table id="ab-wallet-table">
-        <thead><tr><th>标签</th><th>地址</th><th>添加时间</th><th>操作</th></tr></thead>
+        <thead><tr><th>标签</th><th>EVM 地址</th><th>Solana 地址</th><th>交易记录子表</th><th>空投汇总子表</th><th>机器人钱包</th><th>添加时间 (UTC+8)</th><th>操作</th></tr></thead>
         <tbody></tbody>
       </table>
     </div>
@@ -264,17 +367,246 @@ details.range-detail .range-body{padding:12px 14px}
   <div class="card">
     <div class="card-title">代币合约</div>
     <div class="form-grid" style="grid-template-columns:auto 2fr auto;align-items:end">
-      <div class="form-group"><label class="form-label">链</label><select id="ab-token-chain"><option value="bsc">BSC</option><option value="base">Base</option><option value="arbitrum">Arbitrum</option><option value="ethereum">Ethereum</option></select></div>
+      <div class="form-group"><label class="form-label">链</label><select id="ab-token-chain"><option value="bsc">BSC</option><option value="base">Base</option><option value="arbitrum">Arbitrum</option><option value="ethereum">Ethereum</option><option value="xlayer">X Layer</option></select></div>
       <div class="form-group"><label class="form-label">代币合约地址</label><input id="ab-token-address" placeholder="0x..." style="font-family:Consolas,monospace;font-size:12px"></div>
       <button type="button" id="ab-add-token" class="btn btn-primary">添加</button>
     </div>
     <p id="ab-token-result" class="result-text"></p>
     <div class="table-wrap">
       <table id="ab-token-table">
-        <thead><tr><th>链</th><th>符号</th><th>名称</th><th>地址</th><th>精度</th><th>添加时间</th><th>操作</th></tr></thead>
+        <thead><tr><th>链</th><th>符号</th><th>名称</th><th>地址</th><th>精度</th><th>添加时间 (UTC+8)</th><th>操作</th></tr></thead>
         <tbody></tbody>
       </table>
     </div>
+  </div>
+</div>
+
+<!-- Panel: 一键检测 -->
+<div class="panel" id="panel-detect">
+  <div class="page-header"><h2>一键检测并分析</h2><p>选择钱包和代币，自动检测指定日期的刷量时段并创建分析任务</p></div>
+  <div class="card">
+    <div class="card-title">检测参数</div>
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">统计链</label><select id="detect-chain"><option value="bsc">BSC</option><option value="base">Base</option><option value="arbitrum">Arbitrum</option><option value="ethereum">Ethereum</option><option value="xlayer">X Layer</option></select></div>
+      <div class="form-group"><label class="form-label">选择钱包</label><select id="detect-wallet"><option value="">全部钱包</option></select></div>
+      <div class="form-group"><label class="form-label">选择代币（用于定位时间）</label><select id="detect-token"><option value="">全部代币</option></select></div>
+      <div class="form-group"><label class="form-label">目标日期 UTC（留空=今天 UTC）</label><input id="detect-date" type="text" placeholder="YYYY-MM-DD 或留空"></div>
+      <div class="form-group"><label class="form-label">Boost 倍数</label><input id="detect-boost" type="number" value="0.6" step="0.0001"></div>
+      <div class="form-group"><label class="form-label">基准币种</label><select id="detect-base-token"><option value="USDT">USDT</option><option value="USDC">USDC</option></select></div>
+    </div>
+    <div class="btn-row">
+      <button type="button" id="detect-btn" class="btn btn-primary">开始检测并分析</button>
+    </div>
+    <p id="detect-result" class="result-text"></p>
+    <div id="detect-summary-card" class="sub-box" style="display:none"></div>
+    <div id="detect-sessions-container" style="margin-top:12px"></div>
+  </div>
+</div>
+
+<!-- Panel: 空投检测 -->
+<div class="panel" id="panel-rewards">
+  <div class="page-header"><h2>Boost 空投检测</h2><p>按代币合约和钱包统计当日领取数量，并统计卖出获得的稳定币数量</p></div>
+  <div class="card">
+    <div class="card-title">检测参数</div>
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">链</label><select id="reward-chain"><option value="bsc">BSC</option><option value="base">Base</option><option value="arbitrum">Arbitrum</option><option value="ethereum">Ethereum</option><option value="xlayer">X Layer</option><option value="solana">Solana</option></select></div>
+      <div class="form-group"><label class="form-label">钱包</label><select id="reward-wallet"><option value="">全部钱包</option></select></div>
+      <div class="form-group"><label class="form-label">扫描日期（UTC）</label><input id="reward-date" type="text" placeholder="选择 UTC 日期"></div>
+      <div class="form-group"><label class="form-label">期数（可手动改）</label><input id="reward-period" type="number" min="1" step="1" placeholder="自动=上一期+1"></div>
+      <div class="form-group full"><label class="form-label">空投代币合约（Token CA / Mint）</label><input id="reward-token" placeholder="0x..." style="font-family:Consolas,monospace;font-size:12px"></div>
+    </div>
+    <div class="btn-row">
+      <button type="button" id="reward-scan-btn" class="btn btn-primary">一键检测空投</button>
+      <button type="button" id="reward-refresh-btn" class="btn btn-secondary">刷新历史</button>
+    </div>
+    <p id="reward-result" class="result-text"></p>
+  </div>
+
+  <div class="card" id="reward-current-card" style="display:none">
+    <div class="card-title">本次结果</div>
+    <div id="reward-current-summary" class="kpi-grid"></div>
+    <div class="table-wrap">
+      <table id="reward-current-table">
+        <thead><tr><th>钱包序号</th><th>钱包</th><th>领取数量</th><th>卖出稳定币</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">误判排除（可选）</div>
+    <p style="font-size:12px;color:var(--muted);margin-top:0">平时不用处理这里。程序会按“钱包调用合约，合约转目标代币给钱包”的结构自动计入；只有你发现某个合约被误判时，才在这里点“排除”，然后重新检测。</p>
+    <div class="btn-row"><button type="button" id="reward-contract-refresh-btn" class="btn btn-secondary">刷新已识别合约</button></div>
+    <div id="reward-contracts-container" style="margin-top:12px"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">同步到飞书项目汇总（只追加）</div>
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">空投记录</label><select id="reward-sync-record"><option value="">请选择空投记录</option></select></div>
+      <div class="form-group"><label class="form-label">飞书子表</label><select id="reward-sync-table"><option value="">请选择飞书子表</option></select></div>
+      <div class="form-group"><label class="form-label">同步钱包</label><select id="reward-sync-wallet"><option value="">全部非零钱包</option></select></div>
+      <div class="form-group"><label class="form-label">飞书期数（可选）</label><input id="reward-sync-period" type="number" min="1" step="1" placeholder="不填=使用程序期数"></div>
+    </div>
+    <p style="font-size:12px;color:var(--muted);margin-top:6px">写入字段：日期、期数、项目、数量、Boost领取奖励。卖出单价、Boost累计奖励、累计收益等公式列不写入，避免覆盖表格公式。</p>
+    <div class="btn-row"><button type="button" id="reward-sync-btn" class="btn btn-secondary">同步空投到飞书</button></div>
+    <p id="reward-sync-result" class="result-text"></p>
+  </div>
+
+  <div class="card">
+    <div class="card-title">历史期数</div>
+    <div class="table-wrap">
+      <table id="reward-history-table">
+        <thead><tr><th>期数</th><th>状态</th><th>项目</th><th>链</th><th>日期 UTC</th><th>合计领取</th><th>合计卖出稳定币</th><th>钱包明细</th><th>操作</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div id="reward-history-empty" class="empty-state" style="display:none">暂无空投检测记录。</div>
+  </div>
+</div>
+
+<!-- Panel: 跟单卖出 -->
+<div class="panel" id="panel-copysell">
+  <div class="page-header"><h2>跟单卖出</h2><p>机器人钱包检测到空投目标代币后自动卖出，参与钱包需在钱包跟单设置里选择“卖出全部持仓”。</p></div>
+  <div class="card">
+    <div class="card-title">机器人钱包</div>
+    <div class="btn-row">
+      <button type="button" id="copy-refresh-robots-btn" class="btn btn-secondary">从加密文件刷新机器人钱包</button>
+      <button type="button" id="copy-refresh-all-btn" class="btn btn-secondary">刷新页面数据</button>
+    </div>
+    <p id="copy-robot-result" class="result-text">私钥只从后端加密 keystore 读取，前端不会显示私钥。</p>
+    <div class="table-wrap">
+      <table id="copy-robot-table">
+        <thead><tr><th>Key ID</th><th>标签</th><th>机器人地址</th><th>绑定参与钱包数</th><th>更新时间</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">参与钱包绑定</div>
+    <div class="table-wrap">
+      <table id="copy-bind-table">
+        <thead><tr><th>参与钱包</th><th>地址</th><th>当前机器人</th><th>绑定机器人</th><th>操作</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">创建空投卖出任务</div>
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">任务名称</label><input id="copy-task-name" placeholder="留空=自动读取空投代币名称"></div>
+      <div class="form-group"><label class="form-label">链</label><select id="copy-task-chain"><option value="bsc">BSC</option><option value="base">Base</option><option value="arbitrum">Arbitrum</option><option value="ethereum">Ethereum</option><option value="xlayer">X Layer</option></select></div>
+      <div class="form-group full"><label class="form-label">空投目标代币</label><input id="copy-task-token" placeholder="0x..." style="font-family:Consolas,monospace;font-size:12px"></div>
+      <div class="form-group full"><label class="form-label">卖出目标代币</label><input id="copy-task-output" placeholder="默认按链填入推荐稳定币" style="font-family:Consolas,monospace;font-size:12px"></div>
+      <div class="form-group"><label class="form-label">触发基线</label><input id="copy-task-baseline" type="number" min="0" step="0.000001" value="0" placeholder="参与钱包余额大于它才触发"></div>
+      <div class="form-group"><label class="form-label">池子选择</label><select id="copy-task-route"><option value="best">默认最优池子</option><option value="v3">只扫 V3 池子</option><option value="v2">只扫 V2 池子</option></select></div>
+      <div class="form-group"><label class="form-label">轮询间隔（秒）</label><input id="copy-task-poll" type="number" min="0.5" step="0.1" value="0.5"></div>
+      <div class="form-group"><label class="form-label">最大滑点（%）</label><input id="copy-task-slippage" type="number" min="0.01" max="50" step="0.01" value="10"></div>
+      <div class="form-group"><label class="form-label">失败重试次数</label><input id="copy-task-retries" type="number" min="0" max="10" step="1" value="3"></div>
+      <div class="form-group"><label class="form-label">最低接收</label><label style="display:flex;align-items:center;gap:8px;height:38px;color:var(--text);font-size:13px" title="高级兜底，仅适合极小金额机器人触发"><input id="copy-task-allow-zero-min" type="checkbox" style="width:auto;accent-color:var(--warning)">允许 0</label></div>
+    </div>
+    <div class="btn-row">
+      <button type="button" id="copy-create-task-btn" class="btn btn-primary">创建任务</button>
+    </div>
+    <p id="copy-task-result" class="result-text"></p>
+  </div>
+  <div class="card">
+    <div class="card-title">任务列表</div>
+    <div class="table-wrap">
+      <table id="copy-task-table">
+        <thead><tr><th>状态</th><th>卖出指标</th><th>参与成功/有空投</th><th>任务</th><th>链</th><th>目标代币</th><th>输出代币</th><th>基线Raw</th><th>池子</th><th>最低接收</th><th>轮询</th><th>滑点</th><th>最近检查</th><th>操作</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div id="copy-task-detail" style="margin-top:12px"></div>
+  </div>
+</div>
+
+<!-- Panel: 数据总览 -->
+<div class="panel" id="panel-dashboard">
+  <div class="page-header"><h2>数据总览</h2><p>10天平均有效量 & 刷量周期提醒</p></div>
+  <div class="card">
+    <div class="card-title">刷量低保设置</div>
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">日均低保值</label><input id="dashboard-min-daily-average" type="number" min="0" step="0.0001" placeholder="例如 500"></div>
+      <div class="form-group" style="justify-content:end"><div class="btn-row"><button type="button" id="dashboard-save-settings-btn" class="btn btn-primary">保存到后端</button><button type="button" id="dashboard-refresh-btn" class="btn btn-secondary">按低保值重新计算</button></div></div>
+    </div>
+    <p id="dashboard-settings-result" class="result-text">保存到后端后，后台自动提醒会使用这个低保值。</p>
+    <p class="result-text">下次刷量时间 = 到了那一天时，最近 10 天日均有效量第一次低于这里设置的低保值。</p>
+  </div>
+  <div class="card">
+    <div class="card-title">总计</div>
+    <div id="dashboard-overall" style="display:flex;gap:24px;flex-wrap:wrap">
+      <div class="kpi-card"><span class="kpi-label">10天总有效量</span><span class="kpi-value" id="kpi-total-vol">--</span></div>
+      <div class="kpi-card"><span class="kpi-label">10天日均</span><span class="kpi-value" id="kpi-daily-avg">--</span></div>
+      <div class="kpi-card"><span class="kpi-label">日均低保值</span><span class="kpi-value" id="kpi-min-daily-avg">--</span></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">各钱包详情</div>
+    <div id="dashboard-wallets"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">飞书提醒</div>
+    <div style="display:flex;gap:12px;align-items:center">
+      <button type="button" id="trigger-reminder-btn" class="btn btn-primary">手动触发提醒</button>
+      <span id="reminder-result" class="result-text"></span>
+    </div>
+  </div>
+</div>
+
+<!-- Panel: 盈亏总览 -->
+<div class="panel" id="panel-profit">
+  <div class="page-header"><h2>钱包盈亏总览</h2><p>按地址簿关联的飞书表读取每个钱包每个月的损耗、返佣、收益和净利润。</p></div>
+  <div class="card">
+    <div class="card-title">筛选与字段</div>
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">月份范围</label><label style="display:flex;align-items:center;gap:8px;height:38px;color:var(--text);font-size:13px"><input id="profit-use-date-filter" type="checkbox" style="width:auto;accent-color:var(--pri)">只看指定日期范围</label></div>
+
+      <div class="form-group"><label class="form-label">开始日期</label><input id="profit-start-date" type="text" placeholder="YYYY-MM-DD"></div>
+      <div class="form-group"><label class="form-label">结束日期</label><input id="profit-end-date" type="text" placeholder="YYYY-MM-DD"></div>
+      <div class="form-group"><label class="form-label">返佣子表</label><select id="profit-rebate-table"><option value="">自动查找“返佣”</option></select></div>
+      <div class="form-group"><label class="form-label">交易损耗字段</label><input id="profit-wear-field" value="磨损"></div>
+      <div class="form-group"><label class="form-label">收益字段</label><input id="profit-income-field" value="Boost领取奖励"></div>
+      <div class="form-group"><label class="form-label">返佣金额字段</label><input id="profit-rebate-amount-field" value="金额"></div>
+      <div class="form-group"><label class="form-label">返佣钱包字段</label><input id="profit-rebate-wallet-field" value="多选"></div>
+      <div class="form-group" style="justify-content:end"><button type="button" id="profit-refresh-btn" class="btn btn-primary">刷新盈亏</button></div>
+    </div>
+    <p class="result-text">Gas 已包含在磨损内，不额外显示。新增钱包后，只要在地址簿关联交易表和空投汇总表，且返佣表多选出现对应“8号”等标签，这里会自动显示。</p>
+    <p id="profit-result" class="result-text"></p>
+  </div>
+  <div class="card">
+    <div class="card-title">总览</div>
+    <div class="kpi-grid" id="profit-overall"></div>
+    <div id="profit-source"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">月度净利润图</div>
+    <div id="profit-chart"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">手动修正</div>
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">钱包</label><select id="profit-adj-wallet-key"><option value="">先刷新盈亏数据</option></select></div>
+      <div class="form-group"><label class="form-label">月份</label><input id="profit-adj-month" type="month"></div>
+      <div class="form-group"><label class="form-label">损耗修正</label><input id="profit-adj-loss" type="number" step="0.0001" placeholder="例如 86.8"></div>
+      <div class="form-group"><label class="form-label">返佣修正</label><input id="profit-adj-rebate" type="number" step="0.0001" placeholder="可不填"></div>
+      <div class="form-group"><label class="form-label">收益修正</label><input id="profit-adj-income" type="number" step="0.0001" placeholder="可不填"></div>
+      <div class="form-group"><label class="form-label">备注</label><input id="profit-adj-note" placeholder="例如 2025年10月补损耗"></div>
+      <div class="form-group" style="justify-content:end"><button type="button" id="profit-adj-add-btn" class="btn btn-secondary">保存修正</button></div>
+    </div>
+    <p class="result-text">修正只影响本程序盈亏统计，不会修改飞书原始表格。可以用于补录历史差异。</p>
+    <div id="profit-adjustments" class="profit-adjust-list"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">钱包明细</div>
+    <div class="table-wrap">
+      <table id="profit-wallet-table">
+        <thead><tr><th>钱包</th><th>损耗</th><th>返佣</th><th>实际损耗</th><th>收益</th><th>净利润</th><th>月度明细</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div id="profit-empty" class="empty-state" style="display:none">暂无盈亏数据。</div>
   </div>
 </div>
 
@@ -283,21 +615,111 @@ details.range-detail .range-body{padding:12px 14px}
 <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/zh.js"></script>
 <script>
 function initFlatpickr(el){if(!el||el._flatpickr)return;flatpickr(el,{enableTime:true,enableSeconds:true,time_24hr:true,dateFormat:"Y-m-dTH:i:S",altInput:true,altFormat:"Y/m/d H:i:S",locale:"zh",allowInput:true,theme:"dark",onClose:function(){saveFormMemory&&saveFormMemory()}});}
-const state={selectedTaskId:null,activeView:"detail",folders:[],listFolderFilter:"",appendDefaultsTaskId:null,expandedRangeTaskId:null,expandedRangeIndexes:new Set(),feishuTables:[],feishuTaskTableMap:{}};
-const STORAGE_KEYS={form:"okx_stats_form_v1",lastTaskId:"okx_stats_last_task_id_v1",feishuSync:"okx_stats_feishu_sync_v1"};
+function initDatePicker(el,onChange){if(!el||el._flatpickr)return;flatpickr(el,{enableTime:false,dateFormat:"Y-m-d",altInput:true,altFormat:"Y/m/d",locale:"zh",allowInput:true,theme:"dark",onChange:function(){onChange&&onChange()},onClose:function(){onChange&&onChange()}});}
+const state={selectedTaskId:null,activeView:"detail",currentTaskDetail:null,folders:[],listFolderFilter:"",appendDefaultsTaskId:null,expandedRangeTaskId:null,expandedRangeIndexes:new Set(),feishuTables:[],feishuTaskTableMap:{},savedWallets:[],savedTokens:[],robotWallets:[],copySellTasks:[],rewardHistory:[],currentReward:null,rewardContracts:[],walletProfit:null,walletProfitAdjustments:[]};
+const STORAGE_KEYS={form:"okx_stats_form_v1",lastTaskId:"okx_stats_last_task_id_v1",feishuSync:"okx_stats_feishu_sync_v1",reward:"okx_stats_reward_v1",profit:"okx_stats_profit_v1",profitData:"okx_stats_profit_data_v1",profitAdjustments:"okx_stats_profit_adjustments_v1",profitRefreshJob:"okx_stats_profit_refresh_job_v1",copySellControls:"okx_copy_sell_controls_v1"};
+let rewardPollTimer=null;
+let copySellDetailTimer=null;
+let copySellDetailLoading=false;
+let copySellDetailTaskId=null;
+let copySellOpenLogSections=new Set();
+let copySellDetailCloseSeq=0;
 const FORM_FIELD_NAMES=["taskName","folderId","chain","wallets","token","baseToken","boostMultiplier","epsilon","pairTimeoutMinutes","actualBoostVolume"];
 const $=(s)=>document.querySelector(s);
+function setMobileNav(open){
+  document.querySelector(".sidebar")?.classList.toggle("open",open);
+  $("#mobile-nav-backdrop")?.classList.toggle("open",open);
+}
+$("#mobile-menu-btn")?.addEventListener("click",()=>setMobileNav(!document.querySelector(".sidebar")?.classList.contains("open")));
+$("#mobile-nav-backdrop")?.addEventListener("click",()=>setMobileNav(false));
+document.querySelectorAll(".nav-item").forEach(item=>item.addEventListener("click",()=>setMobileNav(false)));
 const safeGetStorageItem=(k)=>{try{return localStorage.getItem(k)}catch(_){return null}};
 const safeSetStorageItem=(k,v)=>{try{localStorage.setItem(k,v)}catch(_){}};
+const safeRemoveStorageItem=(k)=>{try{localStorage.removeItem(k)}catch(_){}};
 const UTC8_OFFSET_MS=8*60*60*1000;
 const pad2=(n)=>String(n).padStart(2,"0");
 const toUtc8InputValueFromDate=(date)=>{if(!(date instanceof Date)||Number.isNaN(date.getTime()))return"";const shifted=new Date(date.getTime()+UTC8_OFFSET_MS);return`${shifted.getUTCFullYear()}-${pad2(shifted.getUTCMonth()+1)}-${pad2(shifted.getUTCDate())}T${pad2(shifted.getUTCHours())}:${pad2(shifted.getUTCMinutes())}:${pad2(shifted.getUTCSeconds())}`};
 const toIsoZ=(v)=>{const text=String(v||"").trim();if(!text)return null;const m=text.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/);if(!m)return null;const year=Number(m[1]),month=Number(m[2]),day=Number(m[3]),hour=Number(m[4]),minute=Number(m[5]),second=Number(m[6]||"0");if([year,month,day,hour,minute,second].some(n=>Number.isNaN(n)))return null;const utcMs=Date.UTC(year,month-1,day,hour,minute,second)-UTC8_OFFSET_MS;const check=new Date(utcMs+UTC8_OFFSET_MS);if(check.getUTCFullYear()!==year||check.getUTCMonth()+1!==month||check.getUTCDate()!==day||check.getUTCHours()!==hour||check.getUTCMinutes()!==minute||check.getUTCSeconds()!==second)return null;return new Date(utcMs).toISOString()};
 const num=(v,d=4)=>{if(v===null||v===undefined||v==="")return"-";const n=Number(v);return Number.isNaN(n)?"-":n.toFixed(d)};
+const escapeHtml=(v)=>String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
 const statusText=(s)=>s==="running"?"运行中":s==="completed"?"已完成":s==="failed"?"失败":s==="canceled"?"已取消":(s||"-");
-const chainText=(c)=>c==="bsc"?"BSC":c==="base"?"Base":c==="arbitrum"?"Arbitrum":c==="ethereum"?"Ethereum":(c||"-");
-const fmtTime=(v)=>{if(!v)return"-";const d=new Date(v);if(Number.isNaN(d.getTime()))return String(v);return toUtc8InputValueFromDate(d).replace("T"," ").replace(/-/g,"/")};
-const parseApiError=(t)=>{if(!t)return"未知错误";try{const o=JSON.parse(t);if(typeof o?.detail==="string")return o.detail}catch(_){}return t};
+const rewardStatusText=(s)=>s==="running"?"后台运行中":s==="completed"?"已完成":s==="failed"?"失败":(s||"-");
+const chainText=(c)=>c==="bsc"?"BSC":c==="base"?"Base":c==="arbitrum"?"Arbitrum":c==="ethereum"?"Ethereum":c==="xlayer"?"X Layer":c==="solana"?"Solana":(c||"-");
+const CHAIN_BASE_TOKENS={bsc:["USDT","USDC","BNB"],base:["USDT","USDC"],arbitrum:["USDT","USDC"],ethereum:["USDT","USDC","WETH"],xlayer:["USDT","USDT0","USDC","OKB"]};
+const COPY_SELL_DEFAULT_OUTPUTS={
+  bsc:{symbol:"USDT",address:"0x55d398326f99059ff775485246999027b3197955"},
+  ethereum:{symbol:"USDC",address:"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"},
+  base:{symbol:"USDC",address:"0x833589fcd6edb6e08f4c7c32d4f71b54bda02913"},
+  arbitrum:{symbol:"USDC",address:"0xaf88d065e77c8cc2239327c5edb3a432268e5831"},
+  xlayer:{symbol:"USDT",address:"0x1e4a5963abfd975d8c9021ce480b42188849d41d"}
+};
+function updateCopySellOutputDefault(force=false){
+  const chain=($("#copy-task-chain")?.value||"bsc").toLowerCase();
+  const input=$("#copy-task-output");
+  if(!input)return;
+  const next=COPY_SELL_DEFAULT_OUTPUTS[chain];
+  const defaults=new Set(Object.values(COPY_SELL_DEFAULT_OUTPUTS).map(item=>item.address.toLowerCase()));
+  const current=String(input.value||"").trim().toLowerCase();
+  if(next){
+    input.placeholder=`默认 ${chainText(chain)} ${next.symbol}: ${next.address}`;
+    if(force||!current||defaults.has(current))input.value=next.address;
+  }else{
+    input.placeholder="0x...";
+    if(force&&defaults.has(current))input.value="";
+  }
+}
+function updateBaseTokenSelect(selectEl,chain){const tokens=CHAIN_BASE_TOKENS[chain]||["USDT","USDC"];const prev=selectEl.value;selectEl.innerHTML="";for(const t of tokens){const opt=document.createElement("option");opt.value=t;opt.textContent=t;selectEl.appendChild(opt)}if(tokens.includes(prev))selectEl.value=prev;}
+const isEvmAddress=(v)=>/^0x[a-fA-F0-9]{40}$/.test(String(v||"").trim());
+const isSolanaAddress=(v)=>/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(String(v||"").trim());
+const walletSolanaAddress=(w)=>isSolanaAddress(w?.solanaAddress)?w.solanaAddress:(isSolanaAddress(w?.address)?w.address:"");
+const walletShort=(addr)=>addr?`${addr.slice(0,6)}...${addr.slice(-4)}`:"-";
+const fmtTime=(v)=>{if(!v)return"-";const d=new Date(v);if(Number.isNaN(d.getTime()))return String(v);return`${toUtc8InputValueFromDate(d).replace("T"," ").replace(/-/g,"/")} UTC+8`};
+function localizeErrorMessage(value){
+  const raw=String(value??"").trim();
+  if(!raw)return"";
+  const lower=raw.toLowerCase();
+  const txMatch=raw.match(/transaction failed:\s*(0x[a-fA-F0-9]+)/i);
+  if(txMatch)return`链上交易执行失败（交易哈希：${txMatch[1]}）。常见原因是滑点保护触发、池子流动性变化、报价过期、路由回滚，或该代币交易限制导致回滚。`;
+  if(lower.includes("participating wallet has target token")&&lower.includes("robot wallet target token balance is 0"))return"参与钱包已经有目标空投币，但对应机器人钱包目标币余额为 0；机器人没币可卖，所以无法触发跟单。需要先给该机器人预买目标币，或检查参与钱包和机器人绑定是否正确。";
+  if(lower.includes("robot_trading_enabled=false"))return"真实交易开关未开启：ROBOT_TRADING_ENABLED=false。系统只允许查看/报价，不会发真实交易。";
+  if(lower.includes("no whitelisted dex routes configured for chain"))return`当前链没有配置白名单 DEX 路由，不能启动真实交易。${raw.match(/chain:\s*([a-z0-9_-]+)/i)?.[1]?`链：${raw.match(/chain:\s*([a-z0-9_-]+)/i)[1]}`:""}`;
+  if(lower.includes("no whitelisted pool route produced a quote"))return"没有找到可报价的白名单池子。可能是该代币没有可用流动性，或当前池子/路由不在白名单里。";
+  if(lower.includes("quoted output is too small"))return"报价输出太小，按当前滑点无法得到非 0 的最低接收数量。可以提高预买/扫池金额，或在高级场景下允许最低接收为 0。";
+  if(lower.includes("robot wallet spend token balance is lower than requested seed-buy amount"))return"机器人钱包支付代币余额不足，无法按当前金额预买目标币。";
+  if(lower.includes("robot private key missing from keystore"))return"机器人私钥不在加密 keystore 中。请确认该机器人已导入密钥文件，并且 keyId 与数据库机器人一致。";
+  if(lower.includes("robot wallet must be bound to exactly one participating wallet"))return"机器人钱包必须且只能绑定一个参与钱包后才能执行预买或跟卖。";
+  if(lower.includes("robot wallet is bound to multiple participating wallets"))return"同一个机器人钱包绑定了多个参与钱包。当前逻辑要求一个机器人只对应一个参与钱包。";
+  if(lower.includes("seed-buy request was interrupted"))return"预买请求中途被打断。请先检查机器人目标币余额，再决定是否重试预买。";
+  if(lower.includes("participant wallet balance was not returned"))return"读取参与钱包余额失败：RPC 没有返回该钱包余额。";
+  if(lower.includes("failed to read corresponding participating wallet balance"))return"读取对应参与钱包余额失败。请检查 RPC 状态和该钱包地址是否正确。";
+  if(lower.includes("participating wallet cleared target token")&&lower.includes("configured output token did not increase"))return"参与钱包目标币已经清零，但配置的输出币余额没有增加。可能跟单卖到了其他币种，或输出币地址配置不对。";
+  if(lower.includes("waiting for okx copy-sell confirmation")||lower.includes("waiting for copy-sell confirmation"))return"正在等待钱包跟单卖出确认。";
+  if(lower.includes("copy-sell was not confirmed")&&lower.includes("continuing background reconciliation"))return"初次等待窗口内没有确认跟单卖出，系统会继续后台复核参与钱包余额。";
+  if(lower.includes("did not clear target token and increase output token before follow-check timeout"))return"跟单确认超时：参与钱包目标币没有清零，或输出币余额没有增加。";
+  if(lower.includes("did not clear target token and increase output token within"))return"跟单确认超时：机器人卖出后，参与钱包在设定时间内没有同时满足目标币清零和输出币增加。";
+  if(lower.includes("already sold target token")&&lower.includes("waiting"))return"机器人已经卖出目标币，系统正在等待参与钱包跟单确认。";
+  if(lower.includes("reached max retries"))return"该机器人已达到最大重试次数，系统已跳过该机器人。";
+  if(lower.includes("post-sell target balance check failed"))return"机器人卖出后检查目标币余额失败。交易可能已执行，请结合交易哈希和钱包余额确认。";
+  if(lower.includes("missing rpc url"))return"缺少该链的 RPC 地址配置。";
+  if(lower.includes("unsupported chain"))return"当前链暂不支持。";
+  if(lower.includes("unsupported route preference"))return"不支持当前池子扫描范围设置。";
+  if(lower.includes("amountin must be positive"))return"交易输入数量必须大于 0。";
+  if(lower.includes("quote output must be positive"))return"报价输出必须大于 0，当前池子报价不可用。";
+  if(lower.includes("v3 path token/fee length mismatch"))return"V3 路由路径和手续费层级不匹配，无法构造交易。";
+  if(/^[\x00-\x7F]+$/.test(raw))return`未识别错误（原始信息）：${raw}`;
+  return raw;
+}
+const parseApiError=(t)=>{
+  if(!t)return"未知错误";
+  const text=String(t).trim();
+  try{const o=JSON.parse(text);if(typeof o?.detail==="string")return localizeErrorMessage(o.detail)}catch(_){}
+  const lower=text.toLowerCase();
+  if(lower.startsWith("<!doctype")||lower.startsWith("<html")||lower.includes("cloudflare")||lower.includes("gateway time-out")||lower.includes("gateway timeout")){
+    if(lower.includes("504"))return"网关超时（504）：本次请求耗时过长，公网代理先断开了连接。需要改成后台任务轮询或减少本次读取范围。";
+    return"服务端返回了 HTML 错误页，通常是网关或代理异常，请查看 VPS 日志。";
+  }
+  return localizeErrorMessage(text.length>500?`${text.slice(0,500)}...`:text);
+};
 const buildDefaultTimeRange=()=>{const n=new Date();const s=new Date(n.getTime()-2*60*60*1000);return{startTime:toUtc8InputValueFromDate(s),endTime:toUtc8InputValueFromDate(n)}};
 
 // Panel navigation
@@ -331,9 +753,55 @@ const saveLastTaskId=(id)=>{safeSetStorageItem(STORAGE_KEYS.lastTaskId,(id||"").
 const loadLastTaskId=()=>{const raw=safeGetStorageItem(STORAGE_KEYS.lastTaskId);return raw?raw.trim():""};
 function saveFeishuSyncMemory(){let old={};try{old=JSON.parse(safeGetStorageItem(STORAGE_KEYS.feishuSync)||"{}")}catch(_){old={}}const map=old&&typeof old.taskTables==="object"&&old.taskTables?old.taskTables:{};const taskId=$("#detail-task-id")?.value?.trim()||"";const tableId=$("#feishu-table-select")?.value||"";if(taskId)tableId?map[taskId]=tableId:delete map[taskId];const snap={taskTables:map,dateField:$("#feishu-date-field")?.value?.trim()||"日期",tradeBeforeField:$("#feishu-before-field")?.value?.trim()||"交易前",tradeAfterField:$("#feishu-after-field")?.value?.trim()||"交易后",gasUsdField:$("#feishu-gas-field")?.value?.trim()||"gas费"};state.feishuTaskTableMap=map;safeSetStorageItem(STORAGE_KEYS.feishuSync,JSON.stringify(snap))}
 function loadFeishuSyncMemory(){const raw=safeGetStorageItem(STORAGE_KEYS.feishuSync);if(!raw)return;try{const snap=JSON.parse(raw);const map=snap&&typeof snap.taskTables==="object"&&snap.taskTables?snap.taskTables:{};state.feishuTaskTableMap=map;if($("#feishu-date-field")&&typeof snap.dateField==="string")$("#feishu-date-field").value=snap.dateField||"日期";if($("#feishu-before-field")&&typeof snap.tradeBeforeField==="string")$("#feishu-before-field").value=snap.tradeBeforeField||"交易前";if($("#feishu-after-field")&&typeof snap.tradeAfterField==="string")$("#feishu-after-field").value=snap.tradeAfterField||"交易后";if($("#feishu-gas-field")&&typeof snap.gasUsdField==="string")$("#feishu-gas-field").value=snap.gasUsdField||"gas费"}catch(_){}}
-function renderFeishuTableSelect(){const sel=$("#feishu-table-select");if(!sel)return;const taskId=$("#detail-task-id")?.value?.trim()||"";const remembered=taskId?state.feishuTaskTableMap[taskId]||"":"";const current=remembered||sel.value||"";sel.innerHTML='<option value="">请选择飞书子表</option>';for(const t of state.feishuTables){const op=document.createElement("option");op.value=t.tableId;op.textContent=`${t.name} (${t.tableId})`;sel.appendChild(op)}if(current&&Array.from(sel.options).some(op=>op.value===current))sel.value=current;else sel.value=""}
-async function fetchFeishuTables(){const res=await fetch("/api/tasks/feishu/tables");if(!res.ok)throw new Error(parseApiError(await res.text()));const items=await res.json();state.feishuTables=Array.isArray(items)?items:[];renderFeishuTableSelect()}
-async function syncToFeishu(){const taskId=$("#detail-task-id").value.trim(),result=$("#sync-feishu-result");if(!taskId){result.textContent="请先输入任务 ID。";return}const tableId=$("#feishu-table-select").value||"";if(!tableId){result.textContent="请选择飞书子表。";return}const payload={tableId,wallet:null,dateField:$("#feishu-date-field").value.trim()||"日期",tradeBeforeField:$("#feishu-before-field").value.trim()||"交易前",tradeAfterField:$("#feishu-after-field").value.trim()||"交易后",gasUsdField:$("#feishu-gas-field").value.trim()||"gas费"};saveFeishuSyncMemory();result.textContent="正在同步到飞书...";const res=await fetch(`/api/tasks/${taskId}/sync-feishu`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});const text=await res.text();if(!res.ok){result.textContent=`同步失败：${parseApiError(text)}`;return}const data=JSON.parse(text);result.textContent=`同步成功：已追加 ${data.appendedCount} 条到表 ${data.tableId}`;}
+const walletByAddress=(addr)=>{
+  const raw=String(addr||"").trim();
+  if(!raw)return null;
+  const lower=raw.toLowerCase();
+  return (state.savedWallets||[]).find(w=>{
+    const evm=String(w.address||"").trim();
+    const sol=String(w.solanaAddress||"").trim();
+    return evm.toLowerCase()===lower||sol===raw;
+  })||null;
+};
+function appendFeishuTableOptions(select,current,placeholder){select.innerHTML=`<option value="">${placeholder}</option>`;for(const t of state.feishuTables){const op=document.createElement("option");op.value=t.tableId;op.textContent=t.name;select.appendChild(op)}if(current&&Array.from(select.options).some(op=>op.value===current))select.value=current;else select.value=""}
+function renderFeishuWalletSelect(){
+  const sel=$("#feishu-wallet-select");
+  if(!sel)return;
+  const current=sel.value||"";
+  const wallets=Array.isArray(state.currentTaskDetail?.wallets)?state.currentTaskDetail.wallets:[];
+  sel.innerHTML='<option value="">自动按地址簿关联</option>';
+  for(const addr of wallets){
+    const saved=walletByAddress(addr);
+    const opt=document.createElement("option");
+    opt.value=addr;
+    opt.textContent=`${saved?.label||addr.slice(0,10)} (${addr.slice(0,6)}...${addr.slice(-4)})`;
+    sel.appendChild(opt);
+  }
+  if(current&&Array.from(sel.options).some(op=>op.value.toLowerCase()===current.toLowerCase()))sel.value=current;
+}
+function renderFeishuTableSelect(){
+  const sel=$("#feishu-table-select");if(!sel)return;
+  const taskId=$("#detail-task-id")?.value?.trim()||"";
+  const wallet=$("#feishu-wallet-select")?.value||"";
+  const mapped=walletByAddress(wallet)?.feishuTradeTableId||"";
+  const remembered=taskId?state.feishuTaskTableMap[taskId]||"": "";
+  const current=mapped||remembered||sel.value||"";
+  appendFeishuTableOptions(sel,current,"自动按地址簿关联");
+}
+function renderRewardFeishuTableSelect(){const sel=$("#reward-sync-table");if(!sel)return;const wallet=$("#reward-sync-wallet")?.value||"";const mapped=walletByAddress(wallet)?.feishuAirdropTableId||"";const current=mapped||sel.value||"";appendFeishuTableOptions(sel,current,"自动按地址簿关联")}
+function renderProfitRebateTableSelect(){
+  const sel=$("#profit-rebate-table");
+  if(!sel)return;
+  const saved=loadProfitSettings();
+  const current=saved.rebateTableId||sel.value||"";
+  appendFeishuTableOptions(sel,current,'自动查找“返佣”');
+  if(!sel.value){
+    const rebate=(state.feishuTables||[]).find(t=>t.name==="返佣");
+    if(rebate)sel.value=rebate.tableId;
+  }
+}
+async function fetchFeishuTables(){const res=await fetch("/api/tasks/feishu/tables");if(!res.ok)throw new Error(parseApiError(await res.text()));const items=await res.json();state.feishuTables=Array.isArray(items)?items:[];renderFeishuTableSelect();renderRewardFeishuTableSelect();renderProfitRebateTableSelect();renderWalletTable()}
+async function syncToFeishu(){const taskId=$("#detail-task-id").value.trim(),result=$("#sync-feishu-result");if(!taskId){result.textContent="请先输入任务 ID。";return}const tableId=$("#feishu-table-select").value||null;const wallet=$("#feishu-wallet-select").value||null;const payload={tableId,wallet,dateField:$("#feishu-date-field").value.trim()||"日期",tradeBeforeField:$("#feishu-before-field").value.trim()||"交易前",tradeAfterField:$("#feishu-after-field").value.trim()||"交易后",gasUsdField:$("#feishu-gas-field").value.trim()||"gas费"};saveFeishuSyncMemory();result.textContent="正在同步到飞书...";const res=await fetch(`/api/tasks/${taskId}/sync-feishu`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});const text=await res.text();if(!res.ok){result.textContent=`同步失败：${parseApiError(text)}`;return}const data=JSON.parse(text);result.textContent=`同步成功：已追加 ${data.appendedCount} 条到 ${data.tableId==="wallet_mappings"?"地址簿关联子表":("表 "+data.tableId)}`;}
 function renderFolderSelectOptions(){const sels=["#form-folder-select","#detail-folder-select","#list-folder-filter"];for(const sel of sels){const el=$(sel);if(!el)continue;const cur=el.value;if(sel==="#list-folder-filter")el.innerHTML='<option value="">全部</option><option value="none">未分类</option>';else el.innerHTML='<option value="">未分类</option>';for(const f of state.folders){const op=document.createElement("option");op.value=f.folderId;op.textContent=f.name;el.appendChild(op)}if([...el.options].some(op=>op.value===cur))el.value=cur;else if(sel==="#list-folder-filter")el.value=state.listFolderFilter||"";else el.value=""}}
 async function fetchFolders(){const res=await fetch("/api/tasks/folders");if(!res.ok)throw new Error(parseApiError(await res.text()));const items=await res.json();state.folders=Array.isArray(items)?items:[];renderFolderSelectOptions()}
 function renderProgress(task){const p=Math.max(0,Math.min(100,Number(task?.progressPercent??0)));const stage=task?.progressStage||"等待中";const text=task?`${statusText(task.status)} · ${stage}`:"尚未选择任务";$("#task-progress-text").textContent=text;$("#task-progress-pct").textContent=`${p}%`;$("#task-progress-msg").textContent=task?.progressMessage||"";$("#task-progress-bar").style.width=`${p}%`}
@@ -350,34 +818,142 @@ function renderSummary(detail){
     const rangeIndex=idx+1;const st=map.get(rangeIndex)||{};const openAttr=state.expandedRangeIndexes.has(rangeIndex)?" open":"";
     return `<details class="range-detail" data-range-index="${rangeIndex}"${openAttr}><summary>${rangeIndex}. ${fmtTime(r.startTime)} → ${fmtTime(r.endTime)}</summary><div class="range-body"><div class="kpi-grid"><div class="kpi-card"><div class="kpi-label">总交易量</div><div class="kpi-value">${num(st.sumTotalVolume)}</div></div><div class="kpi-card"><div class="kpi-label">计算 Boost</div><div class="kpi-value hi">${num(st.computedBoostVolume)}</div></div><div class="kpi-card"><div class="kpi-label">总磨损</div><div class="kpi-value">${num(st.sumWear)}</div></div><div class="kpi-card"><div class="kpi-label">平均费率</div><div class="kpi-value">${num(st.avgFeeRate,6)}</div></div><div class="kpi-card"><div class="kpi-label">Gas(Native)</div><div class="kpi-value">${num(st.sumGasNative,8)}</div></div><div class="kpi-card"><div class="kpi-label">Gas(USD)</div><div class="kpi-value">${num(st.sumGasUsd)}</div></div><div class="kpi-card"><div class="kpi-label">Cycle 数量</div><div class="kpi-value">${st.cycleCount??0}</div></div><div class="kpi-card"><div class="kpi-label">钱包数</div><div class="kpi-value">${st.walletCount??0}</div></div></div></div></details>`;
   }).join(""):'<div class="empty-state">暂无时间段。</div>';
-  const err=detail.errorMessage?`<div style="margin-top:10px;padding:12px;border:1px solid rgba(248,81,73,.3);border-radius:8px;background:rgba(248,81,73,.08);font-size:12px;color:var(--danger)">错误信息：${detail.errorMessage}</div>`:"";
+  const err=detail.errorMessage?`<div style="margin-top:10px;padding:12px;border:1px solid rgba(248,81,73,.3);border-radius:8px;background:rgba(248,81,73,.08);font-size:12px;color:var(--danger)">错误信息：${escapeHtml(localizeErrorMessage(detail.errorMessage))}</div>`:"";
   const badgeClass=`badge-${detail.status||"canceled"}`;
-  box.innerHTML=`<div class="card-title">汇总数据</div><div class="kpi-grid"><div class="kpi-card"><div class="kpi-label">任务状态</div><div class="kpi-value"><span class="badge ${badgeClass}">${statusText(detail.status)}</span></div></div><div class="kpi-card"><div class="kpi-label">任务名称</div><div class="kpi-value" style="font-size:13px">${detail.taskName||"-"}</div></div><div class="kpi-card"><div class="kpi-label">文件夹</div><div class="kpi-value" style="font-size:13px">${detail.folderName||"未分类"}</div></div><div class="kpi-card"><div class="kpi-label">统计链</div><div class="kpi-value" style="font-size:13px">${chainText(detail.chain)}</div></div><div class="kpi-card"><div class="kpi-label">开始时间</div><div class="kpi-value" style="font-size:12px">${fmtTime(detail.startTime)}</div></div><div class="kpi-card"><div class="kpi-label">结束时间</div><div class="kpi-value" style="font-size:12px">${fmtTime(detail.endTime)}</div></div><div class="kpi-card"><div class="kpi-label">时间段数量</div><div class="kpi-value">${trs.length}</div></div><div class="kpi-card"><div class="kpi-label">总交易量</div><div class="kpi-value hi">${num(s.sumTotalVolume)}</div></div><div class="kpi-card"><div class="kpi-label">计算 Boost</div><div class="kpi-value hi">${num(s.computedBoostVolume)}</div></div><div class="kpi-card"><div class="kpi-label">实际 Boost</div><div class="kpi-value">${num(s.actualBoostVolume)}</div></div><div class="kpi-card"><div class="kpi-label">Boost 差值</div><div class="kpi-value">${num(s.boostDiff)}</div></div><div class="kpi-card"><div class="kpi-label">总磨损</div><div class="kpi-value">${num(s.sumWear)}</div></div><div class="kpi-card"><div class="kpi-label">平均费率</div><div class="kpi-value">${num(s.avgFeeRate,6)}</div></div><div class="kpi-card"><div class="kpi-label">Gas(Native)</div><div class="kpi-value">${num(s.sumGasNative,8)}</div></div><div class="kpi-card"><div class="kpi-label">Gas(USD)</div><div class="kpi-value">${num(s.sumGasUsd)}</div></div><div class="kpi-card"><div class="kpi-label">Cycle 数量</div><div class="kpi-value">${s.cycleCount??0}</div></div><div class="kpi-card"><div class="kpi-label">钱包数</div><div class="kpi-value">${Array.isArray(detail.wallets)?detail.wallets.length:0}</div></div></div><div style="margin-top:14px"><div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">时间段明细（点击展开）</div>${appendix}</div>${err}`;
+  box.innerHTML=`<div class="card-title">汇总数据</div><div class="kpi-grid"><div class="kpi-card"><div class="kpi-label">任务状态</div><div class="kpi-value"><span class="badge ${badgeClass}">${statusText(detail.status)}</span></div></div><div class="kpi-card"><div class="kpi-label">任务名称</div><div class="kpi-value" style="font-size:13px">${detail.taskName||"-"}</div></div><div class="kpi-card"><div class="kpi-label">文件夹</div><div class="kpi-value" style="font-size:13px">${detail.folderName||"未分类"}</div></div><div class="kpi-card"><div class="kpi-label">统计链</div><div class="kpi-value" style="font-size:13px">${chainText(detail.chain)}</div></div><div class="kpi-card"><div class="kpi-label">开始时间 (UTC+8)</div><div class="kpi-value" style="font-size:12px">${fmtTime(detail.startTime)}</div></div><div class="kpi-card"><div class="kpi-label">结束时间 (UTC+8)</div><div class="kpi-value" style="font-size:12px">${fmtTime(detail.endTime)}</div></div><div class="kpi-card"><div class="kpi-label">时间段数量</div><div class="kpi-value">${trs.length}</div></div><div class="kpi-card"><div class="kpi-label">总交易量</div><div class="kpi-value hi">${num(s.sumTotalVolume)}</div></div><div class="kpi-card"><div class="kpi-label">计算 Boost</div><div class="kpi-value hi">${num(s.computedBoostVolume)}</div></div><div class="kpi-card"><div class="kpi-label">实际 Boost</div><div class="kpi-value">${num(s.actualBoostVolume)}</div></div><div class="kpi-card"><div class="kpi-label">Boost 差值</div><div class="kpi-value">${num(s.boostDiff)}</div></div><div class="kpi-card"><div class="kpi-label">总磨损</div><div class="kpi-value">${num(s.sumWear)}</div></div><div class="kpi-card"><div class="kpi-label">平均费率</div><div class="kpi-value">${num(s.avgFeeRate,6)}</div></div><div class="kpi-card"><div class="kpi-label">Gas(Native)</div><div class="kpi-value">${num(s.sumGasNative,8)}</div></div><div class="kpi-card"><div class="kpi-label">Gas(USD)</div><div class="kpi-value">${num(s.sumGasUsd)}</div></div><div class="kpi-card"><div class="kpi-label">Cycle 数量</div><div class="kpi-value">${s.cycleCount??0}</div></div><div class="kpi-card"><div class="kpi-label">钱包数</div><div class="kpi-value">${Array.isArray(detail.wallets)?detail.wallets.length:0}</div></div></div><div style="margin-top:14px"><div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">时间段明细（点击展开）</div>${appendix}</div>${err}`;
   for(const el of Array.from(box.querySelectorAll("details.range-detail"))){el.addEventListener("toggle",()=>{const idx=Number(el.dataset.rangeIndex);if(Number.isNaN(idx))return;if(el.open)state.expandedRangeIndexes.add(idx);else state.expandedRangeIndexes.delete(idx)})}
 }
-function renderCycles(detail,cyclesResp){const root=$("#detail-output");if(!detail||!cyclesResp){root.innerHTML="";return}if(!Array.isArray(cyclesResp.items)||cyclesResp.items.length===0){let msg="没有配对记录。";if(detail.status==="running")msg="任务仍在运行中，配对记录还未生成完成。";if(detail.status==="completed")msg="任务已完成，但时间段内没有匹配到买卖闭环。";if(detail.status==="failed")msg=`任务失败，未生成记录。${detail.errorMessage||""}`;root.innerHTML=`<div class="card" style="margin-top:12px"><div class="empty-state">${msg}</div></div>`;return}
+function renderCycles(detail,cyclesResp){const root=$("#detail-output");if(!detail||!cyclesResp){root.innerHTML="";return}if(!Array.isArray(cyclesResp.items)||cyclesResp.items.length===0){let msg="没有配对记录。";if(detail.status==="running")msg="任务仍在运行中，配对记录还未生成完成。";if(detail.status==="completed")msg="任务已完成，但时间段内没有匹配到买卖闭环。";if(detail.status==="failed")msg=`任务失败，未生成记录。${localizeErrorMessage(detail.errorMessage)||""}`;root.innerHTML=`<div class="card" style="margin-top:12px"><div class="empty-state">${escapeHtml(msg)}</div></div>`;return}
 const rows=cyclesResp.items.map(item=>`<tr><td>${item.cycleIndex}</td><td class="mono">${item.wallet}</td><td>${fmtTime(item.startAt)}<br>${fmtTime(item.endAt)}</td><td>${num(item.tradeBeforeUsd)}</td><td>${num(item.tradeAfterUsd)}</td><td>${num(item.tradeVolumeUsd)}</td><td>${num(item.wearUsd)}</td><td>${num(item.feeRate,6)}</td><td>${num(item.gasNativeTotal,8)}</td><td>${num(item.gasUsdTotal)}</td><td>${item.incomplete?'<span class="pill">未完整闭环</span>':'-'}</td><td class="mono" style="max-width:160px;word-break:break-all">${Array.isArray(item.txHashes)?item.txHashes.join("<br>"):""}</td></tr>`).join("");
 root.innerHTML=`<div class="card" style="margin-top:12px"><div class="card-title">配对明细（共 ${cyclesResp.total||0} 条）</div><div class="table-wrap"><table><thead><tr><th>#</th><th>钱包</th><th>时间 (UTC+8)</th><th>交易前</th><th>交易后</th><th>交易量</th><th>磨损</th><th>费率</th><th>Gas(Native)</th><th>Gas(USD)</th><th>状态</th><th>交易哈希</th></tr></thead><tbody>${rows}</tbody></table></div></div>`}
-async function fetchTasks(){const q=state.listFolderFilter?`?folderId=${encodeURIComponent(state.listFolderFilter)}`:"";const res=await fetch(`/api/tasks${q}`);if(!res.ok)throw new Error(parseApiError(await res.text()));const items=await res.json();const rows=Array.isArray(items)?items:[];const tbody=$("#tasks-table tbody");tbody.innerHTML="";for(const item of rows){const tr=document.createElement("tr");tr.className="task-row"+(state.selectedTaskId===item.taskId?" selected":"");tr.style.cursor="pointer";tr.innerHTML=`<td class="mono">${item.taskId}</td><td>${item.folderName||"未分类"}</td><td>${item.taskName||"-"}</td><td><span class="badge badge-${item.status||"canceled"}">${statusText(item.status)}</span></td><td>${Number(item.progressPercent||0)}%</td><td>${item.timeRangeCount??"-"}</td><td>${chainText(item.chain)}</td><td>${num(item.summary?.sumTotalVolume)}</td><td>${item.summary?.cycleCount??0}</td>`;tr.addEventListener("click",()=>{state.selectedTaskId=item.taskId;$("#detail-task-id").value=item.taskId;saveLastTaskId(item.taskId);switchToPanel("detail");loadDetail()});tbody.appendChild(tr)}}
+async function fetchTasks(){
+  const res=await fetch("/api/tasks");
+  if(!res.ok)throw new Error(parseApiError(await res.text()));
+  const items=await res.json();
+  const rows=Array.isArray(items)?items:[];
+
+  // Group by wallet
+  const grouped={};
+  for(const item of rows){
+    const wallets=item.wallets||[];
+    for(const wallet of wallets){
+      const key=wallet.toLowerCase();
+      if(!grouped[key])grouped[key]={wallet:wallet,tasks:[]};
+      grouped[key].tasks.push(item);
+    }
+  }
+
+  // Get wallet labels
+  const walletLabels={};
+  try{
+    const wRes=await fetch("/api/address-book/wallets");
+    if(wRes.ok){
+      const savedWallets=await wRes.json();
+      for(const w of savedWallets){
+        walletLabels[w.address.toLowerCase()]=w.label;
+      }
+    }
+  }catch(_){}
+
+  const container=$("#tasks-by-wallet-container");
+  container.innerHTML="";
+
+  // Initialize collapse state if not exists
+  if(!state.walletCollapseState)state.walletCollapseState={};
+
+  // Sort by label (numeric order: 1, 2, 3, 4...)
+  const sortedKeys=Object.keys(grouped).sort((a,b)=>{
+    const labelA=walletLabels[a]||"";
+    const labelB=walletLabels[b]||"";
+    const numA=parseInt(labelA)||999;
+    const numB=parseInt(labelB)||999;
+    return numA-numB;
+  });
+
+  for(const key of sortedKeys){
+    const g=grouped[key];
+    const label=walletLabels[key]||g.wallet.slice(0,10);
+    const shortAddr=g.wallet.slice(0,8)+"..."+g.wallet.slice(-6);
+    const displayLabel=label?`钱包${label}`:g.wallet.slice(0,10);
+
+    // Check collapse state (default: collapsed)
+    const isCollapsed=state.walletCollapseState[key]!==false;
+
+    const card=document.createElement("div");
+    card.className="card";
+
+    const titleDiv=document.createElement("div");
+    titleDiv.className="card-title";
+    titleDiv.style.cursor="pointer";
+    titleDiv.style.userSelect="none";
+    titleDiv.innerHTML=`<span class="collapse-icon">${isCollapsed?"▶":"▼"}</span> ${displayLabel} <span class="mono" style="font-weight:400;margin-left:6px">${shortAddr}</span> <span style="opacity:0.6;font-size:13px">(${g.tasks.length}个任务)</span>`;
+
+    const wrap=document.createElement("div");
+    wrap.className="table-wrap wallet-tasks-wrap";
+    wrap.style.display=isCollapsed?"none":"block";
+    wrap.dataset.walletKey=key;
+
+    const table=document.createElement("table");
+    table.innerHTML=`<thead><tr><th>任务 ID</th><th>任务名</th><th>状态</th><th>进度</th><th>时间段 (UTC+8)</th><th>链</th><th>总交易量</th><th>Cycle 数</th></tr></thead>`;
+    const tbody=document.createElement("tbody");
+
+    for(const item of g.tasks){
+      const tr=document.createElement("tr");
+      tr.className="task-row"+(state.selectedTaskId===item.taskId?" selected":"");
+      tr.style.cursor="pointer";
+      tr.innerHTML=`<td class="mono">${item.taskId}</td><td>${item.taskName||"-"}</td><td><span class="badge badge-${item.status||"canceled"}">${statusText(item.status)}</span></td><td>${Number(item.progressPercent||0)}%</td><td>${item.timeRangeCount??"-"}</td><td>${chainText(item.chain)}</td><td>${num(item.summary?.sumTotalVolume)}</td><td>${item.summary?.cycleCount??0}</td>`;
+      tr.addEventListener("click",(e)=>{
+        e.stopPropagation();
+        state.selectedTaskId=item.taskId;
+        $("#detail-task-id").value=item.taskId;
+        saveLastTaskId(item.taskId);
+        switchToPanel("detail");
+        loadDetail();
+      });
+      tbody.appendChild(tr);
+    }
+
+    table.appendChild(tbody);
+    wrap.appendChild(table);
+
+    // Toggle collapse
+    titleDiv.addEventListener("click",(e)=>{
+      e.stopPropagation();
+      const icon=titleDiv.querySelector(".collapse-icon");
+      const currentlyCollapsed=wrap.style.display==="none";
+
+      if(currentlyCollapsed){
+        wrap.style.display="block";
+        icon.textContent="▼";
+        state.walletCollapseState[key]=false;
+      }else{
+        wrap.style.display="none";
+        icon.textContent="▶";
+        state.walletCollapseState[key]=true;
+      }
+    });
+
+    card.appendChild(titleDiv);
+    card.appendChild(wrap);
+    container.appendChild(card);
+  }
+}
 async function fetchTaskDetail(taskId){const res=await fetch(`/api/tasks/${taskId}`);if(!res.ok)throw new Error(parseApiError(await res.text()));return res.json()}
 async function fetchTaskCycles(taskId){const res=await fetch(`/api/tasks/${taskId}/cycles?page=1&pageSize=100`);if(!res.ok)throw new Error(parseApiError(await res.text()));return res.json()}
 async function cancelTask(){const taskId=$("#detail-task-id").value.trim(),result=$("#task-op-result");if(!taskId){result.textContent="请先输入任务 ID。";return}if(!window.confirm(`确认取消任务 ${taskId} 吗？`))return;result.textContent="正在请求取消任务...";const res=await fetch(`/api/tasks/${taskId}/cancel`,{method:"POST"});const text=await res.text();if(!res.ok){result.textContent=`取消失败：${parseApiError(text)}`;return}const data=JSON.parse(text);result.textContent=`已发送取消请求：${data.taskId}（${statusText(data.status)} / ${data.progressStage||"-"}）`;await fetchTasks();await refreshActiveTaskView()}
-async function deleteTask(){const taskId=$("#detail-task-id").value.trim(),result=$("#task-op-result");if(!taskId){result.textContent="请先输入任务 ID。";return}if(!window.confirm(`确认删除任务 ${taskId} 吗？此操作不可恢复。`))return;result.textContent="正在删除任务...";const res=await fetch(`/api/tasks/${taskId}`,{method:"DELETE"});const text=await res.text();if(!res.ok){result.textContent=`删除失败：${parseApiError(text)}`;return}const data=JSON.parse(text);result.textContent=`已删除任务：${data.taskId}`;if(state.selectedTaskId===taskId)state.selectedTaskId=null;state.activeView="detail";state.appendDefaultsTaskId=null;$("#detail-task-id").value="";saveLastTaskId("");$("#detail-output").innerHTML="";$("#assign-folder-result").textContent="";$("#append-range-result").textContent="";$("#sync-feishu-result").textContent="";renderFeishuTableSelect();renderProgress(null);renderSummary(null);await fetchTasks()}
+async function deleteTask(){const taskId=$("#detail-task-id").value.trim(),result=$("#task-op-result");if(!taskId){result.textContent="请先输入任务 ID。";return}if(!window.confirm(`确认删除任务 ${taskId} 吗？此操作不可恢复。`))return;result.textContent="正在删除任务...";const res=await fetch(`/api/tasks/${taskId}`,{method:"DELETE"});const text=await res.text();if(!res.ok){result.textContent=`删除失败：${parseApiError(text)}`;return}const data=JSON.parse(text);result.textContent=`已删除任务：${data.taskId}`;if(state.selectedTaskId===taskId)state.selectedTaskId=null;state.activeView="detail";state.appendDefaultsTaskId=null;$("#detail-task-id").value="";saveLastTaskId("");$("#detail-output").innerHTML="";const assignTip=$("#assign-folder-result");if(assignTip)assignTip.textContent="";$("#append-range-result").textContent="";$("#sync-feishu-result").textContent="";renderFeishuTableSelect();renderProgress(null);renderSummary(null);await fetchTasks()}
 async function createFolder(){const nameInput=$("#new-folder-name"),result=$("#folder-op-result");const name=nameInput.value.trim();if(!name){result.textContent="请输入文件夹名称。";return}result.textContent="正在创建文件夹...";const res=await fetch("/api/tasks/folders",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name})});const text=await res.text();if(!res.ok){result.textContent=`创建失败：${parseApiError(text)}`;return}const folder=JSON.parse(text);result.textContent=`已创建文件夹：${folder.name}`;nameInput.value="";await fetchFolders();const formFolder=$("#form-folder-select");if(formFolder)formFolder.value=folder.folderId;saveFormMemory()}
 async function assignFolderToTask(){const taskId=$("#detail-task-id").value.trim();const folderId=$("#detail-folder-select").value||null;const result=$("#assign-folder-result");if(!taskId){result.textContent="请先输入任务 ID。";return}result.textContent="正在保存分类...";const res=await fetch(`/api/tasks/${taskId}/folder`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({folderId})});const text=await res.text();if(!res.ok){result.textContent=`保存失败：${parseApiError(text)}`;return}const detail=JSON.parse(text);result.textContent=`已保存：${detail.folderName||"未分类"}`;state.selectedTaskId=detail.taskId;await fetchTasks();renderSummary(detail)}
 function setAppendRangeDefaults(detail){const list=$("#append-range-list");if(!list||!detail?.endTime)return;const taskId=detail.taskId||"";const existing=getAppendRangesFromUI();const hasInput=existing.some(i=>i.startTime||i.endTime);if(state.appendDefaultsTaskId===taskId&&hasInput)return;const s=new Date(detail.endTime);if(Number.isNaN(s.getTime()))return;const e=new Date(s.getTime()+2*60*60*1000);setAppendRanges([{startTime:toUtc8InputValueFromDate(s),endTime:toUtc8InputValueFromDate(e)}]);state.appendDefaultsTaskId=taskId}
 async function appendRangeAndRescan(){const taskId=$("#detail-task-id").value.trim(),result=$("#append-range-result");if(!taskId){result.textContent="请先输入任务 ID。";return}const arr=getAppendRangesFromUI();if(arr.length===0){result.textContent="请至少添加 1 个时间段。";return}const normalized=[];for(let i=0;i<arr.length;i+=1){const row=arr[i];if(!row.startTime||!row.endTime){result.textContent=`追加失败：第 ${i+1} 个时间段未填写完整。`;return}const s=toIsoZ(row.startTime),e=toIsoZ(row.endTime);if(!s||!e||Number.isNaN(new Date(s).getTime())||Number.isNaN(new Date(e).getTime())){result.textContent=`追加失败：第 ${i+1} 个时间段格式无效。`;return}if(new Date(s)>=new Date(e)){result.textContent=`追加失败：第 ${i+1} 个时间段开始时间必须早于结束时间。`;return}normalized.push({startTime:s,endTime:e})}
 result.textContent="正在追加时间段并重扫...";const res=await fetch(`/api/tasks/${taskId}/append-ranges`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({timeRanges:normalized})});const text=await res.text();if(!res.ok){result.textContent=`追加失败：${parseApiError(text)}`;return}const data=JSON.parse(text);result.textContent=`已追加 ${normalized.length} 个时间段并开始重扫：${data.taskId}（${statusText(data.status)}）`;state.selectedTaskId=data.taskId;state.activeView="detail";saveLastTaskId(data.taskId);await fetchTasks();await loadDetail()}
-async function loadDetail(){const taskId=$("#detail-task-id").value.trim();if(!taskId)return;state.selectedTaskId=taskId;state.activeView="detail";saveLastTaskId(taskId);try{const detail=await fetchTaskDetail(taskId);const opResult=$("#task-op-result");if(opResult&&detail.status!=="running")opResult.textContent="";renderProgress(detail);renderSummary(detail);renderFeishuTableSelect();const detailFolder=$("#detail-folder-select");if(detailFolder)detailFolder.value=detail.folderId||"";const assignResult=$("#assign-folder-result");if(assignResult)assignResult.textContent="";setAppendRangeDefaults(detail);$("#detail-output").innerHTML=`<div class="card" style="margin-top:12px"><div class="card-title">运行说明</div><p style="font-size:12px;color:var(--muted)">当前阶段：${detail.progressStage||"-"}。${detail.progressMessage||""}</p><p style="font-size:12px;color:var(--muted2);margin-top:6px">任务会自动刷新，无需重复点击。若长时间停在同一阶段，通常是 RPC 限流导致。</p></div>`}catch(err){$("#detail-output").innerHTML=`<div class="card" style="margin-top:12px"><div class="empty-state">读取详情失败：${String(err)}</div></div>`}}
-async function loadCycles(){const taskId=$("#detail-task-id").value.trim();if(!taskId)return;state.selectedTaskId=taskId;state.activeView="cycles";saveLastTaskId(taskId);try{const [detail,cycles]=await Promise.all([fetchTaskDetail(taskId),fetchTaskCycles(taskId)]);renderProgress(detail);renderSummary(detail);renderFeishuTableSelect();renderCycles(detail,cycles)}catch(err){$("#detail-output").innerHTML=`<div class="card" style="margin-top:12px"><div class="empty-state">读取配对记录失败：${String(err)}</div></div>`}}
+async function loadDetail(){const taskId=$("#detail-task-id").value.trim();if(!taskId)return;state.selectedTaskId=taskId;state.activeView="detail";saveLastTaskId(taskId);try{const detail=await fetchTaskDetail(taskId);state.currentTaskDetail=detail;const opResult=$("#task-op-result");if(opResult&&detail.status!=="running")opResult.textContent="";renderProgress(detail);renderSummary(detail);renderFeishuWalletSelect();renderFeishuTableSelect();const detailFolder=$("#detail-folder-select");if(detailFolder)detailFolder.value=detail.folderId||"";const assignResult=$("#assign-folder-result");if(assignResult)assignResult.textContent="";setAppendRangeDefaults(detail);$("#detail-output").innerHTML=`<div class="card" style="margin-top:12px"><div class="card-title">运行说明</div><p style="font-size:12px;color:var(--muted)">当前阶段：${detail.progressStage||"-"}。${detail.progressMessage||""}</p><p style="font-size:12px;color:var(--muted2);margin-top:6px">任务会自动刷新，无需重复点击。若长时间停在同一阶段，通常是 RPC 限流导致。</p></div>`}catch(err){$("#detail-output").innerHTML=`<div class="card" style="margin-top:12px"><div class="empty-state">读取详情失败：${String(err)}</div></div>`}}
+async function loadCycles(){const taskId=$("#detail-task-id").value.trim();if(!taskId)return;state.selectedTaskId=taskId;state.activeView="cycles";saveLastTaskId(taskId);try{const [detail,cycles]=await Promise.all([fetchTaskDetail(taskId),fetchTaskCycles(taskId)]);state.currentTaskDetail=detail;renderProgress(detail);renderSummary(detail);renderFeishuWalletSelect();renderFeishuTableSelect();renderCycles(detail,cycles)}catch(err){$("#detail-output").innerHTML=`<div class="card" style="margin-top:12px"><div class="empty-state">读取配对记录失败：${String(err)}</div></div>`}}
 async function refreshActiveTaskView(){if(!state.selectedTaskId)return;if(state.activeView==="cycles")await loadCycles();else await loadDetail()}
-$("#task-form").addEventListener("submit",async(event)=>{event.preventDefault();const form=event.currentTarget;saveFormMemory();const fd=new FormData(form);const output=$("#create-result");const wallets=String(fd.get("wallets")).split(",").map(w=>w.trim()).filter(Boolean);const timeRanges=getTimeRangesFromUI();if(wallets.length===0){output.textContent="创建失败：请至少填写 1 个钱包地址。";return}if(timeRanges.length===0){output.textContent="创建失败：请至少添加 1 个时间段。";return}const normalized=[];for(let i=0;i<timeRanges.length;i+=1){const row=timeRanges[i];if(!row.startTime||!row.endTime){output.textContent=`创建失败：第 ${i+1} 个时间段未填写完整。`;return}const s=toIsoZ(row.startTime),e=toIsoZ(row.endTime);if(!s||!e||Number.isNaN(new Date(s).getTime())||Number.isNaN(new Date(e).getTime())){output.textContent=`创建失败：第 ${i+1} 个时间段格式无效。`;return}if(new Date(s)>=new Date(e)){output.textContent=`创建失败：第 ${i+1} 个时间段开始时间必须早于结束时间。`;return}normalized.push({startTime:s,endTime:e})}
-const payload={taskName:(fd.get("taskName")||"").toString().trim()||null,folderId:(fd.get("folderId")||"").toString().trim()||null,chain:fd.get("chain"),wallets,token:fd.get("token"),baseToken:fd.get("baseToken"),startTime:normalized[0].startTime,endTime:normalized[normalized.length-1].endTime,timeRanges:normalized,boostMultiplier:Number(fd.get("boostMultiplier")),epsilon:Number(fd.get("epsilon")),pairTimeoutMinutes:Number(fd.get("pairTimeoutMinutes")),actualBoostVolume:fd.get("actualBoostVolume")?Number(fd.get("actualBoostVolume")):null};
+$("#task-form").addEventListener("submit",async(event)=>{event.preventDefault();const form=event.currentTarget;saveFormMemory();const fd=new FormData(form);const output=$("#create-result");const wallets=String(fd.get("wallets")).split(",").map(w=>w.trim()).filter(Boolean);const tokens=String(fd.get("token")||"").split(",").map(t=>t.trim()).filter(Boolean);const timeRanges=getTimeRangesFromUI();if(wallets.length===0){output.textContent="创建失败：请至少填写 1 个钱包地址。";return}if(tokens.length!==1){output.textContent="创建失败：请填写 1 个目标代币合约。多个代币会导致 Cycle 统计混在一起。";return}if(timeRanges.length===0){output.textContent="创建失败：请至少添加 1 个时间段。";return}const normalized=[];for(let i=0;i<timeRanges.length;i+=1){const row=timeRanges[i];if(!row.startTime||!row.endTime){output.textContent=`创建失败：第 ${i+1} 个时间段未填写完整。`;return}const s=toIsoZ(row.startTime),e=toIsoZ(row.endTime);if(!s||!e||Number.isNaN(new Date(s).getTime())||Number.isNaN(new Date(e).getTime())){output.textContent=`创建失败：第 ${i+1} 个时间段格式无效。`;return}if(new Date(s)>=new Date(e)){output.textContent=`创建失败：第 ${i+1} 个时间段开始时间必须早于结束时间。`;return}normalized.push({startTime:s,endTime:e})}
+const payload={taskName:(fd.get("taskName")||"").toString().trim()||null,folderId:(fd.get("folderId")||"").toString().trim()||null,chain:fd.get("chain"),wallets,tokens,baseToken:fd.get("baseToken"),startTime:normalized[0].startTime,endTime:normalized[normalized.length-1].endTime,timeRanges:normalized,boostMultiplier:Number(fd.get("boostMultiplier")),epsilon:Number(fd.get("epsilon")),pairTimeoutMinutes:Number(fd.get("pairTimeoutMinutes")),actualBoostVolume:fd.get("actualBoostVolume")?Number(fd.get("actualBoostVolume")):null};
 output.textContent=`正在创建任务（同一任务，${normalized.length} 个时间段）...`;const res=await fetch("/api/tasks",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});const text=await res.text();if(!res.ok){output.textContent=`创建失败：${parseApiError(text)}`;return}const data=JSON.parse(text);output.textContent=`任务已创建：${data.taskId}，状态：${statusText(data.status)}，时间段：${normalized.length}`;$("#detail-task-id").value=data.taskId;state.selectedTaskId=data.taskId;state.activeView="detail";saveLastTaskId(data.taskId);await fetchTasks();switchToPanel("detail");await loadDetail()});
 $("#refresh-tasks").addEventListener("click",async()=>{await fetchTasks();await refreshActiveTaskView()});
-$("#create-folder-btn").addEventListener("click",createFolder);
-$("#assign-folder-btn").addEventListener("click",assignFolderToTask);
-$("#list-folder-filter").addEventListener("change",async(event)=>{state.listFolderFilter=event.target.value||"";await fetchTasks()});
 $("#load-detail").addEventListener("click",loadDetail);
 $("#load-cycles").addEventListener("click",loadCycles);
 $("#append-range-run").addEventListener("click",appendRangeAndRescan);
@@ -387,12 +963,13 @@ $("#cancel-task-btn").addEventListener("click",cancelTask);
 $("#delete-task-btn").addEventListener("click",deleteTask);
 $("#add-time-range").addEventListener("click",()=>{const list=$("#time-range-list");if(!list)return;list.appendChild(createTimeRangeRow(buildNextTimeRange()));syncTimeRangeButtons();saveFormMemory()});
 $("#add-append-range").addEventListener("click",()=>{const list=$("#append-range-list");if(!list)return;list.appendChild(createAppendRangeRow(buildNextAppendRange()));syncAppendRangeButtons()});
+$("#feishu-wallet-select").addEventListener("change",()=>{renderFeishuTableSelect();saveFeishuSyncMemory()});
 $("#feishu-table-select").addEventListener("change",saveFeishuSyncMemory);
 $("#feishu-date-field").addEventListener("input",saveFeishuSyncMemory);
 $("#feishu-before-field").addEventListener("input",saveFeishuSyncMemory);
 $("#feishu-after-field").addEventListener("input",saveFeishuSyncMemory);
 $("#feishu-gas-field").addEventListener("input",saveFeishuSyncMemory);
-$("#detail-task-id").addEventListener("input",(event)=>{saveLastTaskId(event.target.value.trim());const tip=$("#append-range-result");if(tip)tip.textContent="";const fsTip=$("#sync-feishu-result");if(fsTip)fsTip.textContent="";const opTip=$("#task-op-result");if(opTip)opTip.textContent="";state.appendDefaultsTaskId=null;renderFeishuTableSelect()});
+$("#detail-task-id").addEventListener("input",(event)=>{saveLastTaskId(event.target.value.trim());const tip=$("#append-range-result");if(tip)tip.textContent="";const fsTip=$("#sync-feishu-result");if(fsTip)fsTip.textContent="";const opTip=$("#task-op-result");if(opTip)opTip.textContent="";state.appendDefaultsTaskId=null;state.currentTaskDetail=null;renderFeishuWalletSelect();renderFeishuTableSelect()});
 const formElement=$("#task-form");
 formElement.addEventListener("input",saveFormMemory);
 formElement.addEventListener("change",saveFormMemory);
@@ -405,9 +982,8 @@ const hasCompleteRange=getTimeRangesFromUI().some(i=>i.startTime&&i.endTime);
 if(!formRestored||!hasCompleteRange){setTimeRanges([buildDefaultTimeRange()]);saveFormMemory()}
 const lastTaskId=loadLastTaskId();
 if(lastTaskId){$("#detail-task-id").value=lastTaskId;state.selectedTaskId=lastTaskId}
-state.listFolderFilter=$("#list-folder-filter").value||"";
-fetchFolders().then(fetchTasks).catch(async()=>{await fetchTasks()});
-fetchFeishuTables().catch((err)=>{const tip=$("#sync-feishu-result");if(tip)tip.textContent=`飞书子表加载失败：${String(err)}`});
+fetchTasks().catch(err=>console.error("Failed to fetch tasks:",err));
+const feishuTablesReady=fetchFeishuTables().catch((err)=>{const tip=$("#sync-feishu-result");if(tip)tip.textContent=`飞书子表加载失败：${String(err)}`});
 renderSummary(null);
 if(state.selectedTaskId)loadDetail();
 setInterval(async()=>{await fetchTasks();await refreshActiveTaskView()},5000);
@@ -415,20 +991,1545 @@ setInterval(async()=>{await fetchTasks();await refreshActiveTaskView()},5000);
 // --- Address Book ---
 state.savedWallets=[];
 state.savedTokens=[];
-async function fetchSavedWallets(){const res=await fetch("/api/address-book/wallets");if(!res.ok)return;state.savedWallets=await res.json();renderWalletTable();renderWalletPicker()}
-async function fetchSavedTokens(){const res=await fetch("/api/address-book/tokens");if(!res.ok)return;state.savedTokens=await res.json();renderTokenTable();renderTokenPicker()}
-function renderWalletTable(){const tbody=document.querySelector("#ab-wallet-table tbody");if(!tbody)return;tbody.innerHTML="";for(const w of state.savedWallets){const tr=document.createElement("tr");tr.innerHTML=`<td>${w.label}</td><td class="mono">${w.address}</td><td>${fmtTime(w.createdAt)}</td><td><button class="btn btn-danger btn-sm" data-id="${w.walletId}">删除</button></td>`;tr.querySelector("button").addEventListener("click",async()=>{await fetch(`/api/address-book/wallets/${w.walletId}`,{method:"DELETE"});await fetchSavedWallets()});tbody.appendChild(tr)}}
+async function fetchSavedWallets(){const res=await fetch("/api/address-book/wallets");if(!res.ok)return;state.savedWallets=await res.json();renderWalletTable();renderWalletPicker();renderDetectWalletSelect();renderRewardWalletSelect();renderFeishuWalletSelect();renderFeishuTableSelect();renderRewardFeishuTableSelect();renderCopySellBindings()}
+async function fetchSavedTokens(){const res=await fetch("/api/address-book/tokens");if(!res.ok)return;state.savedTokens=await res.json();renderTokenTable();renderTokenPicker();renderDetectTokenSelect()}
+function tableSelectHtml(value,cls){const opts=['<option value="">未关联</option>'];for(const t of state.feishuTables||[]){opts.push(`<option value="${escapeHtml(t.tableId)}"${t.tableId===value?" selected":""}>${escapeHtml(t.name)}</option>`)}return `<select class="${cls}" style="min-width:130px">${opts.join("")}</select>`}
+function robotSelectHtml(value,cls){const opts=['<option value="">未绑定</option>'];for(const r of state.robotWallets||[]){opts.push(`<option value="${escapeHtml(r.robotWalletId)}"${r.robotWalletId===value?" selected":""}>${escapeHtml(r.label)} (${walletShort(r.address)})</option>`)}return `<select class="${cls}" style="min-width:160px">${opts.join("")}</select>`}
+function renderWalletTable(){
+  const tbody=document.querySelector("#ab-wallet-table tbody");
+  if(!tbody)return;
+  tbody.innerHTML="";
+  for(const w of state.savedWallets){
+    const tr=document.createElement("tr");
+    tr.innerHTML=`<td>${escapeHtml(w.label)}</td><td class="mono">${escapeHtml(w.address)}</td><td><input class="wallet-solana-address" value="${escapeHtml(w.solanaAddress||"")}" placeholder="Solana 地址" style="min-width:220px;font-family:Consolas,monospace;font-size:12px"></td><td>${tableSelectHtml(w.feishuTradeTableId||"","wallet-trade-table")}</td><td>${tableSelectHtml(w.feishuAirdropTableId||"","wallet-airdrop-table")}</td><td>${robotSelectHtml(w.robotWalletId||"","wallet-robot-wallet")}</td><td>${fmtTime(w.createdAt)}</td><td><button class="btn btn-secondary btn-sm save-wallet-map" data-id="${w.walletId}">保存关联</button> <button class="btn btn-danger btn-sm delete-wallet" data-id="${w.walletId}">删除</button></td>`;
+    tr.querySelector(".save-wallet-map").addEventListener("click",async()=>{
+      const result=$("#ab-wallet-result");
+      const payload={
+        label:w.label,
+        solanaAddress:tr.querySelector(".wallet-solana-address").value.trim()||null,
+        feishuTradeTableId:tr.querySelector(".wallet-trade-table").value||null,
+        feishuAirdropTableId:tr.querySelector(".wallet-airdrop-table").value||null
+      };
+      result.textContent="正在保存关联...";
+      const res=await fetch(`/api/address-book/wallets/${w.walletId}`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+      const text=await res.text();
+      if(!res.ok){result.textContent=`保存失败：${parseApiError(text)}`;return}
+      const robotWalletId=tr.querySelector(".wallet-robot-wallet").value||null;
+      const bindRes=await fetch(`/api/copy-sell/address-book/wallets/${w.walletId}/robot`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({robotWalletId})});
+      const bindText=await bindRes.text();
+      if(!bindRes.ok){result.textContent=`机器人绑定失败：${parseApiError(bindText)}`;return}
+      result.textContent="关联已保存。";
+      await loadCopySellData();
+    });
+    tr.querySelector(".delete-wallet").addEventListener("click",async()=>{await fetch(`/api/address-book/wallets/${w.walletId}`,{method:"DELETE"});await fetchSavedWallets()});
+    tbody.appendChild(tr);
+  }
+}
 function renderTokenTable(){const tbody=document.querySelector("#ab-token-table tbody");if(!tbody)return;tbody.innerHTML="";for(const t of state.savedTokens){const tr=document.createElement("tr");tr.innerHTML=`<td>${chainText(t.chain)}</td><td style="font-weight:600;color:var(--pri)">${t.symbol||"-"}</td><td>${t.name||"-"}</td><td class="mono">${t.address}</td><td>${t.decimals??"-"}</td><td>${fmtTime(t.createdAt)}</td><td><button class="btn btn-danger btn-sm" data-id="${t.tokenId}">删除</button></td>`;tr.querySelector("button").addEventListener("click",async()=>{await fetch(`/api/address-book/tokens/${t.tokenId}`,{method:"DELETE"});await fetchSavedTokens()});tbody.appendChild(tr)}}
-function renderWalletPicker(){const box=$("#wallet-picker");if(!box)return;if(state.savedWallets.length===0){box.innerHTML='<span style="font-size:12px;color:var(--muted)">地址簿为空，请先添加钱包</span>';return}const walletsInput=document.querySelector('[name="wallets"]');const current=(walletsInput?.value||"").split(",").map(s=>s.trim().toLowerCase()).filter(Boolean);box.innerHTML="";for(const w of state.savedWallets){const checked=current.includes(w.address.toLowerCase())?"checked":"";const row=document.createElement("label");row.style.cssText="display:flex;align-items:center;gap:8px;padding:4px 0;cursor:pointer;font-size:12px";row.innerHTML=`<input type="checkbox" value="${w.address}" ${checked} style="width:auto;accent-color:var(--pri)"><span style="color:var(--text);font-weight:500">${w.label}</span><span class="mono" style="font-size:11px">${w.address.slice(0,8)}...${w.address.slice(-6)}</span>`;row.querySelector("input").addEventListener("change",()=>{syncWalletPickerToInput()});box.appendChild(row)}}
+async function fetchRobotWallets(){const res=await fetch("/api/copy-sell/robot-wallets");if(!res.ok)return;state.robotWallets=await res.json();renderRobotWallets();renderCopySellBindings();renderWalletTable()}
+async function fetchCopySellTasks(){const res=await fetch("/api/copy-sell/tasks");if(!res.ok)return;state.copySellTasks=await res.json();renderCopySellTasks()}
+async function loadCopySellData(){await fetchRobotWallets();await fetchSavedWallets();await fetchCopySellTasks()}
+function renderRobotWallets(){
+  const tbody=document.querySelector("#copy-robot-table tbody");
+  if(!tbody)return;
+  tbody.innerHTML="";
+  for(const r of state.robotWallets||[]){
+    const tr=document.createElement("tr");
+    tr.innerHTML=`<td class="mono">${escapeHtml(r.robotWalletId)}</td><td>${escapeHtml(r.label)}</td><td class="mono">${escapeHtml(r.address)}</td><td>${r.boundWalletCount??0}</td><td>${fmtTime(r.updatedAt)}</td>`;
+    tbody.appendChild(tr);
+  }
+  if((state.robotWallets||[]).length===0)tbody.innerHTML='<tr><td colspan="5" class="empty-state">暂无机器人钱包。先用脚本生成加密 keystore，再点击刷新。</td></tr>';
+}
+function renderCopySellBindings(){
+  const tbody=document.querySelector("#copy-bind-table tbody");
+  if(!tbody)return;
+  tbody.innerHTML="";
+  const wallets=(state.savedWallets||[]).filter(w=>isEvmAddress(w.address));
+  for(const w of wallets){
+    const tr=document.createElement("tr");
+    tr.innerHTML=`<td>${escapeHtml(w.label)}</td><td class="mono">${escapeHtml(w.address)}</td><td>${w.robotWalletLabel?`${escapeHtml(w.robotWalletLabel)} <span class="mono">${walletShort(w.robotWalletAddress||"")}</span>`:"未绑定"}</td><td>${robotSelectHtml(w.robotWalletId||"","copy-bind-robot")}</td><td><button class="btn btn-secondary btn-sm copy-bind-save" data-id="${w.walletId}">保存</button></td>`;
+    tr.querySelector(".copy-bind-save").addEventListener("click",async()=>{
+      const result=$("#copy-robot-result");
+      result.textContent="正在保存机器人绑定...";
+      const robotWalletId=tr.querySelector(".copy-bind-robot").value||null;
+      const res=await fetch(`/api/copy-sell/address-book/wallets/${w.walletId}/robot`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({robotWalletId})});
+      const text=await res.text();
+      if(!res.ok){result.textContent=`保存失败：${parseApiError(text)}`;return}
+      result.textContent="机器人绑定已保存。";
+      await loadCopySellData();
+    });
+    tbody.appendChild(tr);
+  }
+  if(wallets.length===0)tbody.innerHTML='<tr><td colspan="5" class="empty-state">地址簿暂无 EVM 参与钱包。</td></tr>';
+}
+function copySellStatusText(s){return s==="active"?"运行中":s==="paused"?"已暂停":s==="failed"?"失败":(s||"-")}
+function copySellOverallText(s){return s==="sold"?"已卖完":s==="partial"?"部分成功":s==="failed"?"失败":s==="pending"?"处理中":"未开始"}
+function copySellRouteText(s){return s==="v2"?"只扫 V2":s==="v3"?"只扫 V3":"默认最优"}
+function copySellMinOutText(task){return task?.allowZeroMinOutput?"允许 0":"滑点保护"}
+function copySellLogStatusText(s){
+  const status=String(s||"").toLowerCase();
+  const map={
+    detected:"已检测",
+    quoted:"已报价",
+    sold:"已卖出",
+    bought:"已买入",
+    failed:"失败",
+    pending:"等待中",
+    waiting_copy_sell:"等待跟单确认",
+    trigger_failed:"触发失败",
+    check_failed:"检查失败",
+    no_target_balance:"未触发",
+    partial:"部分成功",
+  };
+  return map[status]||s||"-";
+}
+function copySellControlMemory(){try{const data=JSON.parse(safeGetStorageItem(STORAGE_KEYS.copySellControls)||"{}");return data&&typeof data==="object"?data:{}}catch(_){return {}}}
+function copySellTaskControls(taskId){const data=copySellControlMemory();return data[taskId]&&typeof data[taskId]==="object"?data[taskId]:{}}
+function copySellTaskControlValue(taskId,field){return String(copySellTaskControls(taskId)[field]||"")}
+function saveCopySellTaskControl(taskId,field,value){if(!taskId||!field)return;const data=copySellControlMemory();data[taskId]={...(data[taskId]||{}),[field]:String(value||"")};safeSetStorageItem(STORAGE_KEYS.copySellControls,JSON.stringify(data))}
+function readCopySellTaskControl(row,taskId,field){const input=row?.querySelector(`.copy-task-param[data-field="${field}"]`);const value=String((input?.value??copySellTaskControlValue(taskId,field))||"").trim();saveCopySellTaskControl(taskId,field,value);return value}
+function bindCopySellTaskControls(tbody){tbody.querySelectorAll(".copy-task-param").forEach(input=>input.addEventListener("change",()=>saveCopySellTaskControl(input.dataset.id,input.dataset.field,input.value)))}
+function stopCopySellDetailAutoRefresh(){
+  if(copySellDetailTimer){clearInterval(copySellDetailTimer);copySellDetailTimer=null}
+  copySellDetailTaskId=null;
+  const box=$("#copy-task-detail");
+  if(box)box.dataset.copyDetailTaskId="";
+}
+function closeCopySellTaskDetail(){
+  copySellDetailCloseSeq+=1;
+  stopCopySellDetailAutoRefresh();
+  copySellOpenLogSections.clear();
+  const box=$("#copy-task-detail");
+  if(box){
+    box.innerHTML="";
+    box.dataset.copyDetailTaskId="";
+  }
+}
+function startCopySellDetailAutoRefresh(taskId){
+  if(!taskId)return;
+  if(copySellDetailTaskId===taskId&&copySellDetailTimer)return;
+  stopCopySellDetailAutoRefresh();
+  copySellDetailTaskId=taskId;
+  const box=$("#copy-task-detail");
+  if(box)box.dataset.copyDetailTaskId=taskId;
+  copySellDetailTimer=setInterval(()=>{
+    if(copySellDetailLoading)return;
+    if(!document.querySelector("#panel-copysell")?.classList.contains("active"))return;
+    const detailBox=$("#copy-task-detail");
+    if(!detailBox||detailBox.dataset.copyDetailTaskId!==copySellDetailTaskId)return;
+    loadCopySellTaskDetail(copySellDetailTaskId,{auto:true}).catch(err=>{
+      const result=$("#copy-task-result");
+      if(result)result.textContent=`自动刷新详情失败：${String(err)}`;
+    });
+  },1500);
+}
+function toggleCopySellTaskDetail(taskId){
+  const box=$("#copy-task-detail");
+  const openTaskId=box?.dataset.copyDetailTaskId||copySellDetailTaskId||"";
+  const hasDetail=!!(box&&box.innerHTML.trim());
+  if(taskId&&openTaskId===taskId&&hasDetail){
+    closeCopySellTaskDetail();
+    renderCopySellTasks();
+    return;
+  }
+  loadCopySellTaskDetail(taskId);
+}
+function renderCopySellTasks(){
+  const tbody=document.querySelector("#copy-task-table tbody");
+  if(!tbody)return;
+  tbody.innerHTML="";
+  for(const task of state.copySellTasks||[]){
+    const tr=document.createElement("tr");
+    const controls=copySellTaskControls(task.taskId);
+    tr.innerHTML=`<td>${copySellStatusText(task.status)}</td><td>${copySellOverallText(task.sellStatus)}</td><td>${task.participantSoldCount??0}/${task.participantTargetCount??0}</td><td>${escapeHtml(task.name||task.taskId)}</td><td>${chainText(task.chain)}</td><td class="mono">${walletShort(task.tokenAddress)}</td><td class="mono">${walletShort(task.outputTokenAddress)}</td><td>${escapeHtml(task.triggerBaselineRaw||"0")}</td><td>${copySellRouteText(task.routePreference)}</td><td>${copySellMinOutText(task)}</td><td>${task.pollIntervalSeconds}s</td><td>${Number(task.slippageBps||0)/100}%</td><td>${fmtTime(task.lastCheckedAt)}</td><td><div class="copy-task-actions"><input class="copy-task-param" data-id="${escapeHtml(task.taskId)}" data-field="seedAmount" type="number" min="0" step="0.000001" placeholder="预买额" value="${escapeHtml(controls.seedAmount||"")}"><input class="copy-task-param" data-id="${escapeHtml(task.taskId)}" data-field="seedSlippage" type="number" min="0.01" max="50" step="0.01" placeholder="预买滑点%" value="${escapeHtml(controls.seedSlippage||"")}"><input class="copy-task-param" data-id="${escapeHtml(task.taskId)}" data-field="scanAmount" type="number" min="0" step="0.000001" placeholder="扫池额" value="${escapeHtml(controls.scanAmount||"")}"><div class="copy-task-buttons"><button class="btn btn-secondary btn-sm copy-task-detail-btn" data-id="${task.taskId}">详情</button> <button class="btn btn-secondary btn-sm copy-task-scan-routes-btn" data-id="${task.taskId}">扫池</button> <button class="btn btn-secondary btn-sm copy-task-quote-btn" data-id="${task.taskId}">报价</button> <button class="btn btn-secondary btn-sm copy-task-seed-buy-btn" data-id="${task.taskId}">预买</button> <button class="btn btn-primary btn-sm copy-task-start-btn" data-id="${task.taskId}">启动</button> <button class="btn btn-secondary btn-sm copy-task-pause-btn" data-id="${task.taskId}">暂停</button> <button class="btn btn-danger btn-sm copy-task-delete-btn" data-id="${task.taskId}">删除</button></div></div></td>`;
+    tbody.appendChild(tr);
+  }
+  if((state.copySellTasks||[]).length===0)tbody.innerHTML='<tr><td colspan="14" class="empty-state">暂无跟单卖出任务。</td></tr>';
+  bindCopySellTaskControls(tbody);
+  tbody.querySelectorAll(".copy-task-detail-btn").forEach(btn=>btn.addEventListener("click",()=>toggleCopySellTaskDetail(btn.dataset.id)));
+  tbody.querySelectorAll(".copy-task-scan-routes-btn").forEach(btn=>btn.addEventListener("click",()=>scanCopySellRoutes(btn.dataset.id,btn.closest("tr"))));
+  tbody.querySelectorAll(".copy-task-quote-btn").forEach(btn=>btn.addEventListener("click",()=>quoteCopySellTask(btn.dataset.id)));
+  tbody.querySelectorAll(".copy-task-seed-buy-btn").forEach(btn=>btn.addEventListener("click",()=>seedBuyCopySellTask(btn.dataset.id,btn.closest("tr"),btn)));
+  tbody.querySelectorAll(".copy-task-start-btn").forEach(btn=>btn.addEventListener("click",()=>copySellTaskAction(btn.dataset.id,"start")));
+  tbody.querySelectorAll(".copy-task-pause-btn").forEach(btn=>btn.addEventListener("click",()=>copySellTaskAction(btn.dataset.id,"pause")));
+  tbody.querySelectorAll(".copy-task-delete-btn").forEach(btn=>btn.addEventListener("click",()=>copySellTaskAction(btn.dataset.id,"delete")));
+}
+async function refreshRobotWallets(){
+  const result=$("#copy-robot-result");
+  result.textContent="正在从后端加密 keystore 刷新机器人钱包...";
+  const res=await fetch("/api/copy-sell/robot-wallets/refresh",{method:"POST"});
+  const text=await res.text();
+  if(!res.ok){result.textContent=`刷新失败：${parseApiError(text)}`;return}
+  const data=JSON.parse(text);
+  result.textContent=`刷新完成：新增 ${data.imported}，更新 ${data.updated}。`;
+  await loadCopySellData();
+}
+async function createCopySellTask(){
+  const result=$("#copy-task-result");
+  const chain=$("#copy-task-chain").value||"bsc";
+  const tokenAddress=$("#copy-task-token").value.trim().toLowerCase();
+  const outputTokenAddress=$("#copy-task-output").value.trim().toLowerCase();
+  if(!isEvmAddress(tokenAddress)||!isEvmAddress(outputTokenAddress)){result.textContent="代币地址格式不正确。";return}
+  const slippagePct=Number($("#copy-task-slippage").value||10);
+  const payload={name:$("#copy-task-name").value.trim()||null,chain,tokenAddress,outputTokenAddress,triggerBaseline:$("#copy-task-baseline").value||"0",routePreference:$("#copy-task-route").value||"best",allowZeroMinOutput:!!$("#copy-task-allow-zero-min")?.checked,pollIntervalSeconds:Number($("#copy-task-poll").value||0.5),slippageBps:Math.round(slippagePct*100),maxRetries:Number($("#copy-task-retries").value||3)};
+  result.textContent="正在创建跟单卖出任务...";
+  const res=await fetch("/api/copy-sell/tasks",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+  const text=await res.text();
+  if(!res.ok){result.textContent=`创建失败：${parseApiError(text)}`;return}
+  const data=JSON.parse(text);
+  result.textContent=`已创建任务：${data.taskId}。真实交易默认关闭，启动前确认 ROBOT_TRADING_ENABLED。`;
+  await fetchCopySellTasks();
+}
+async function copySellTaskAction(taskId,action){
+  if(!taskId)return;
+  const result=$("#copy-task-result");
+  if(action==="delete"&&!window.confirm(`确认删除跟单卖出任务 ${taskId} 吗？`))return;
+  if(action==="delete"&&copySellDetailTaskId===taskId)closeCopySellTaskDetail();
+  result.textContent="正在处理任务...";
+  const res=await fetch(`/api/copy-sell/tasks/${taskId}/${action}`,{method:"POST"});
+  const text=await res.text();
+  if(!res.ok){result.textContent=`操作失败：${parseApiError(text)}`;return}
+  result.textContent=`操作完成：${action}`;
+  await fetchCopySellTasks();
+  if(action!=="delete")await loadCopySellTaskDetail(taskId);
+}
+async function quoteCopySellTask(taskId){
+  if(!taskId)return;
+  const result=$("#copy-task-result");
+  result.textContent="正在报价...";
+  const res=await fetch(`/api/copy-sell/tasks/${taskId}/quote`,{method:"POST"});
+  const text=await res.text();
+  if(!res.ok){result.textContent=`报价失败：${parseApiError(text)}`;return}
+  const rows=JSON.parse(text);
+  result.textContent=`报价完成：${rows.length} 个机器人钱包。`;
+  renderCopySellQuoteRows(rows);
+}
+async function scanCopySellRoutes(taskId,row){
+  if(!taskId)return;
+  const result=$("#copy-task-result");
+  const amount=Number(readCopySellTaskControl(row,taskId,"scanAmount")||0);
+  if(!Number.isFinite(amount)||amount<=0){result.textContent="请先填写扫池金额。";return}
+  result.textContent="正在通过 RPC 扫描买入/卖出候选池子...";
+  const scans=[
+    {side:"sell",label:"卖出：空投 -> 输出"},
+    {side:"buy",label:"买入：输出 -> 空投"}
+  ];
+  const results=await Promise.all(scans.map(async scan=>{
+    const res=await fetch(`/api/copy-sell/tasks/${taskId}/scan-routes`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({side:scan.side,amount:String(amount),routePreference:"best"})});
+    const text=await res.text();
+    if(!res.ok)return {scan,rows:[],error:parseApiError(text)};
+    return {scan,rows:JSON.parse(text).map(row=>({...row,scanSide:scan.side,scanLabel:scan.label})),error:null};
+  }));
+  const rows=results.flatMap(item=>item.rows);
+  const errors=results.filter(item=>item.error).map(item=>`${item.scan.label}: ${item.error}`);
+  const sellCount=results.find(item=>item.scan.side==="sell")?.rows.length||0;
+  const buyCount=results.find(item=>item.scan.side==="buy")?.rows.length||0;
+  result.textContent=`扫池完成：卖出 ${sellCount} 条，买入 ${buyCount} 条。${errors.length?`失败：${errors.join("；")}`:""}`;
+  renderCopySellRouteScanRows(rows);
+}
+async function seedBuyCopySellTask(taskId,row,button){
+  if(!taskId)return;
+  const result=$("#copy-task-result");
+  const spendAmount=Number(readCopySellTaskControl(row,taskId,"seedAmount")||0);
+  const slippagePctRaw=readCopySellTaskControl(row,taskId,"seedSlippage");
+  if(!Number.isFinite(spendAmount)||spendAmount<=0){result.textContent="请先填写每个机器人预买金额。";return}
+  if(!window.confirm(`确认让所有已绑定机器人钱包各自预买 ${spendAmount} 个输出代币金额的空投代币吗？`))return;
+  const payload={spendAmount:String(spendAmount)};
+  const slippagePct=Number(slippagePctRaw);
+  if(Number.isFinite(slippagePct)&&slippagePct>0)payload.slippageBps=Math.round(slippagePct*100);
+  if(button)button.disabled=true;
+  result.textContent="正在执行机器人预买，7 个钱包会并发发交易，请等链上确认...";
+  try{
+    const res=await fetch(`/api/copy-sell/tasks/${taskId}/seed-buy`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+    const text=await res.text();
+    if(!res.ok){result.textContent=`预买失败：${parseApiError(text)}`;return}
+    const rows=JSON.parse(text);
+    const ok=rows.filter(r=>r.status==="bought").length;
+    const failed=rows.filter(r=>r.status==="failed").length;
+    const running=rows.filter(r=>r.status==="pending"||r.status==="quoted").length;
+    result.textContent=`预买完成：成功 ${ok}，失败 ${failed}${running?`，处理中 ${running}`:""}。`;
+    renderCopySellSeedBuyRows(rows);
+    await fetchCopySellTasks();
+  }finally{
+    if(button)button.disabled=false;
+  }
+}
+function renderCopySellQuoteRows(rows){
+  stopCopySellDetailAutoRefresh();
+  const box=$("#copy-task-detail");
+  if(!box)return;
+  const body=(rows||[]).map(r=>`<tr><td class="mono">${escapeHtml(r.robotWalletId)}</td><td class="mono">${escapeHtml(r.walletAddress)}</td><td>${escapeHtml(r.balanceRaw||"0")}</td><td>${escapeHtml(r.quotedOutputRaw||"-")}</td><td>${escapeHtml(r.minOutputRaw||"-")}</td><td>${escapeHtml(r.route?.protocol||"-")}</td><td>${escapeHtml(localizeErrorMessage(r.errorMessage))}</td></tr>`).join("");
+  box.innerHTML=`<div class="sub-box"><div class="sub-box-title">报价结果</div><div class="table-wrap"><table><thead><tr><th>机器人</th><th>地址</th><th>余额Raw</th><th>报价Raw</th><th>最小到账Raw</th><th>路由</th><th>错误</th></tr></thead><tbody>${body||'<tr><td colspan="7" class="empty-state">暂无报价。</td></tr>'}</tbody></table></div></div>`;
+}
+function copyRouteGapText(raw,bestRaw){
+  try{
+    const out=BigInt(String(raw||"0"));
+    const best=BigInt(String(bestRaw||"0"));
+    if(best<=0n)return "-";
+    if(out===best)return "最优";
+    const diff=best-out;
+    const bestNum=Number(best);
+    const outNum=Number(out);
+    const pct=Number.isFinite(bestNum)&&bestNum>0&&Number.isFinite(outNum)?` (${((1-outNum/bestNum)*100).toFixed(4)}%)`:"";
+    return `少 ${diff.toString()} Raw${pct}`;
+  }catch(_){return "-"}
+}
+function renderCopySellRouteScanRows(rows){
+  stopCopySellDetailAutoRefresh();
+  const box=$("#copy-task-detail");
+  if(!box)return;
+  const bestBySide={};
+  for(const row of rows||[]){
+    const side=row.scanSide||"sell";
+    const raw=BigInt(String(row.amountOutRaw||"0"));
+    if(bestBySide[side]===undefined||raw>bestBySide[side])bestBySide[side]=raw;
+  }
+  const body=(rows||[]).map(r=>{
+    const side=r.scanSide||"sell";
+    const bestRaw=bestBySide[side]===undefined?"0":bestBySide[side].toString();
+    return `<tr><td>${escapeHtml(r.scanLabel||"-")}</td><td>${escapeHtml(copyRouteGapText(r.amountOutRaw,bestRaw))}</td><td>${escapeHtml(r.dexName||"-")}</td><td>${escapeHtml(r.protocol||"-")}</td><td>${escapeHtml((r.fees||[]).join("/")||"-")}</td><td>${escapeHtml(r.amountInRaw||"-")}</td><td>${escapeHtml(r.amountOutRaw||"-")}</td><td>${escapeHtml(r.minOutputRaw??"-")}</td><td class="mono">${escapeHtml((r.pools||[]).filter(Boolean).map(walletShort).join(" -> ")||"-")}</td><td class="mono">${escapeHtml((r.path||[]).map(walletShort).join(" -> ")||"-")}</td><td class="mono">${escapeHtml(walletShort(r.router||""))}</td></tr>`;
+  }).join("");
+  box.innerHTML=`<div class="sub-box"><div class="sub-box-title">手动扫池结果</div><div class="table-wrap"><table><thead><tr><th>方向</th><th>和最优差距</th><th>DEX</th><th>协议</th><th>Fee</th><th>输入Raw</th><th>输出Raw</th><th>最低接收Raw</th><th>池子</th><th>路径</th><th>Router</th></tr></thead><tbody>${body||'<tr><td colspan="11" class="empty-state">没有扫到可报价池子。</td></tr>'}</tbody></table></div></div>`;
+}
+function renderCopySellSeedBuyRows(rows){
+  stopCopySellDetailAutoRefresh();
+  const box=$("#copy-task-detail");
+  if(!box)return;
+  const body=(rows||[]).map(r=>`<tr><td>${escapeHtml(copySellLogStatusText(r.status))}</td><td class="mono">${escapeHtml(r.robotWalletId)}</td><td class="mono">${escapeHtml(walletShort(r.walletAddress||""))}</td><td>${escapeHtml(r.spendAmountRaw||"-")}</td><td>${escapeHtml(r.quotedOutputRaw||"-")}</td><td>${escapeHtml(r.targetAmountRaw||"-")}</td><td>${escapeHtml(r.targetBalanceAfterRaw||"-")}</td><td class="mono">${r.approvalTxHash?escapeHtml(walletShort(r.approvalTxHash)):"-"}</td><td class="mono">${r.swapTxHash?escapeHtml(walletShort(r.swapTxHash)):"-"}</td><td>${escapeHtml(localizeErrorMessage(r.errorMessage))}</td></tr>`).join("");
+  box.innerHTML=`<div class="sub-box"><div class="sub-box-title">机器人预买结果</div><div class="table-wrap"><table><thead><tr><th>状态</th><th>机器人</th><th>地址</th><th>支付Raw</th><th>报价Raw</th><th>买入Raw</th><th>目标余额Raw</th><th>授权Tx</th><th>买入Tx</th><th>错误</th></tr></thead><tbody>${body||'<tr><td colspan="10" class="empty-state">暂无预买结果。</td></tr>'}</tbody></table></div></div>`;
+}
+function copySellRawShort(value){
+  const text=String(value??"").trim();
+  if(!text||text==="null"||text==="undefined")return "-";
+  return text.length>16?`${text.slice(0,7)}...${text.slice(-6)}`:text;
+}
+function copySellResultTimeValue(row){
+  const ts=row?.updatedAt||row?.createdAt||row?.attemptCreatedAt||"";
+  const value=Date.parse(ts);
+  return Number.isFinite(value)?value:0;
+}
+function copySellParticipantState(row){
+  if(row?.sellSucceeded)return "sold";
+  const status=String(row?.status||"").toLowerCase();
+  if(status==="sold")return "sold";
+  if(status==="no_target_balance")return "idle";
+  if(["pending","waiting_copy_sell"].includes(status))return "pending";
+  if(["failed","trigger_failed","check_failed","partial"].includes(status))return "failed";
+  return status?"pending":"idle";
+}
+function copySellParticipantStatusText(row){
+  const state=copySellParticipantState(row);
+  if(state==="sold")return "卖出成功";
+  if(state==="pending")return "等待确认";
+  if(state==="failed")return "失败";
+  return "未触发";
+}
+function copySellParticipantBadgeClass(row){
+  const state=copySellParticipantState(row);
+  return state==="sold"?"badge-completed":state==="failed"?"badge-failed":state==="pending"?"badge-running":"badge-canceled";
+}
+function copySellParticipantCardClass(row){
+  const state=copySellParticipantState(row);
+  return state==="sold"?"sold":state==="failed"?"failed":state==="pending"?"pending":"idle";
+}
+function latestCopySellParticipantResults(attempts){
+  const rows=[];
+  for(const attempt of attempts||[]){
+    for(const result of attempt.participantResults||[]){
+      rows.push({
+        ...result,
+        robotWalletId:result.robotWalletId||attempt.robotWalletId,
+        attemptStatus:attempt.status,
+        attemptCreatedAt:attempt.createdAt,
+      });
+    }
+  }
+  rows.sort((a,b)=>copySellResultTimeValue(b)-copySellResultTimeValue(a));
+  const latest=new Map();
+  for(const row of rows){
+    const key=row.walletId||String(row.walletAddress||"").toLowerCase()||row.walletLabel||row.robotWalletId;
+    if(key&&!latest.has(key))latest.set(key,row);
+  }
+  return [...latest.values()].sort((a,b)=>{
+    const na=Number(a.walletLabel),nb=Number(b.walletLabel);
+    if(Number.isFinite(na)&&Number.isFinite(nb))return na-nb;
+    return String(a.walletLabel||a.walletAddress||"").localeCompare(String(b.walletLabel||b.walletAddress||""),"zh-CN");
+  });
+}
+function renderCopySellWalletStatusCards(rows){
+  if(!rows.length)return '<div class="empty-state">暂无参与钱包状态。任务触发后这里会按钱包显示最终卖出结果。</div>';
+  return `<div class="copy-status-grid">${rows.map(row=>{
+    const statusText=copySellParticipantStatusText(row);
+    const err=row.errorMessage&&copySellParticipantState(row)!=="sold"?`<div class="copy-wallet-error">${escapeHtml(localizeErrorMessage(row.errorMessage))}</div>`:"";
+    return `<div class="copy-wallet-card ${copySellParticipantCardClass(row)}">
+      <div class="copy-wallet-head">
+        <div class="copy-wallet-name">钱包 ${escapeHtml(row.walletLabel||row.walletId||"-")}</div>
+        <span class="badge ${copySellParticipantBadgeClass(row)}">${statusText}</span>
+      </div>
+      <div class="copy-wallet-meta"><span class="mono">${escapeHtml(walletShort(row.walletAddress||""))}</span><span>机器人 ${escapeHtml(row.robotWalletId||"-")}</span><span>${fmtTime(row.updatedAt||row.createdAt)}</span></div>
+      <div class="copy-wallet-metrics">
+        <div class="copy-wallet-metric"><span>卖前目标</span><strong title="${escapeHtml(row.targetBalanceBeforeRaw||"-")}">${escapeHtml(copySellRawShort(row.targetBalanceBeforeRaw))}</strong></div>
+        <div class="copy-wallet-metric"><span>卖后目标</span><strong title="${escapeHtml(row.targetBalanceAfterRaw||"-")}">${escapeHtml(copySellRawShort(row.targetBalanceAfterRaw))}</strong></div>
+        <div class="copy-wallet-metric"><span>输出增加</span><strong title="${escapeHtml(row.outputAmountRaw||"-")}">${escapeHtml(copySellRawShort(row.outputAmountRaw))}</strong></div>
+      </div>
+      ${err}
+    </div>`;
+  }).join("")}</div>`;
+}
+function copySellCaptureLogOpenState(box){
+  if(!box)return;
+  box.querySelectorAll(".copy-log-section[data-log-section]").forEach(section=>{
+    const key=section.dataset.logSection;
+    if(!key)return;
+    if(section.open)copySellOpenLogSections.add(key);
+    else copySellOpenLogSections.delete(key);
+  });
+}
+function bindCopySellLogSections(box){
+  if(!box)return;
+  box.querySelectorAll(".copy-log-section[data-log-section]").forEach(section=>{
+    const key=section.dataset.logSection;
+    if(!key)return;
+    section.open=copySellOpenLogSections.has(key);
+    section.addEventListener("toggle",()=>{
+      if(section.open)copySellOpenLogSections.add(key);
+      else copySellOpenLogSections.delete(key);
+    });
+  });
+}
+async function loadCopySellTaskDetail(taskId,{auto=false}={}){
+  if(!taskId||copySellDetailLoading)return;
+  const closeSeq=copySellDetailCloseSeq;
+  copySellDetailLoading=true;
+  try{
+  const res=await fetch(`/api/copy-sell/tasks/${taskId}?t=${Date.now()}`);
+  const text=await res.text();
+  if(!res.ok){if(!auto)$("#copy-task-result").textContent=`读取详情失败：${parseApiError(text)}`;return}
+  if(closeSeq!==copySellDetailCloseSeq)return;
+  const task=JSON.parse(text);
+  const attempts=Array.isArray(task.attempts)?task.attempts:[];
+  const seedBuys=Array.isArray(task.seedBuys)?task.seedBuys:[];
+  const refreshedAt=fmtTime(new Date().toISOString());
+  const latestParticipantRows=latestCopySellParticipantResults(attempts);
+  const walletStatusCards=renderCopySellWalletStatusCards(latestParticipantRows);
+  const participantLogRows=attempts.flatMap(a=>(a.participantResults||[]).map(r=>({...r,robotWalletId:r.robotWalletId||a.robotWalletId,attemptCreatedAt:a.createdAt})));
+  participantLogRows.sort((a,b)=>copySellResultTimeValue(b)-copySellResultTimeValue(a));
+  const robotRows=attempts.slice(0,40).map(a=>`<tr><td>${escapeHtml(copySellLogStatusText(a.status))}</td><td>${a.sellSucceeded?"是":"否"}</td><td class="mono">${escapeHtml(a.robotWalletId)}</td><td>${escapeHtml(a.balanceRaw||"-")}</td><td>${escapeHtml(a.targetBalanceAfterRaw||"-")}</td><td>${escapeHtml(a.quotedOutputRaw||"-")}</td><td>${escapeHtml(a.outputAmountRaw||"-")}</td><td class="mono">${a.approvalTxHash?escapeHtml(walletShort(a.approvalTxHash)):"-"}</td><td class="mono">${a.swapTxHash?escapeHtml(walletShort(a.swapTxHash)):"-"}</td><td>${a.retryCount}</td><td>${escapeHtml(localizeErrorMessage(a.errorMessage))}</td><td>${fmtTime(a.createdAt)}</td></tr>`).join("");
+  const walletRows=participantLogRows.slice(0,40).map(r=>`<tr><td>${r.sellSucceeded?"是":"否"}</td><td><span class="badge ${copySellParticipantBadgeClass(r)}">${copySellParticipantStatusText(r)}</span><div style="margin-top:4px;color:var(--muted);font-size:11px">${escapeHtml(copySellLogStatusText(r.status))}</div></td><td>${escapeHtml(r.walletLabel||"-")}</td><td class="mono">${escapeHtml(walletShort(r.walletAddress||""))}</td><td class="mono">${escapeHtml(r.robotWalletId||"-")}</td><td>${escapeHtml(r.targetBalanceBeforeRaw||"-")}</td><td>${escapeHtml(r.targetBalanceAfterRaw||"-")}</td><td>${escapeHtml(r.outputAmountRaw||"-")}</td><td>${escapeHtml(localizeErrorMessage(r.errorMessage))}</td><td>${fmtTime(r.updatedAt||r.createdAt)}</td></tr>`).join("");
+  const seedBuyRows=seedBuys.slice(0,30).map(r=>`<tr><td>${escapeHtml(copySellLogStatusText(r.status))}</td><td class="mono">${escapeHtml(r.robotWalletId)}</td><td>${escapeHtml(r.spendAmountRaw||"-")}</td><td>${escapeHtml(r.targetAmountRaw||"-")}</td><td class="mono">${r.swapTxHash?escapeHtml(walletShort(r.swapTxHash)):"-"}</td><td>${escapeHtml(localizeErrorMessage(r.errorMessage))}</td><td>${fmtTime(r.createdAt)}</td></tr>`).join("");
+  const box=$("#copy-task-detail");
+  if(!box)return;
+  copySellCaptureLogOpenState(box);
+  box.dataset.copyDetailTaskId=taskId;
+  box.innerHTML=`<div class="sub-box"><div class="sub-box-title">钱包卖出状态：${escapeHtml(task.name||task.taskId)} · ${copySellStatusText(task.status)} · ${copySellOverallText(task.sellStatus)} ${task.participantSoldCount??0}/${task.participantTargetCount??0} · 自动刷新 1.5s · ${escapeHtml(refreshedAt)}</div><div class="kpi-grid"><div class="kpi-card"><div class="kpi-label">参与成功</div><div class="kpi-value">${task.participantSoldCount??0}/${task.participantTargetCount??0}</div></div><div class="kpi-card"><div class="kpi-label">失败</div><div class="kpi-value" style="color:var(--danger)">${task.participantFailedCount??0}</div></div><div class="kpi-card"><div class="kpi-label">等待确认</div><div class="kpi-value" style="color:var(--warning)">${task.participantPendingCount??0}</div></div><div class="kpi-card"><div class="kpi-label">机器人卖出</div><div class="kpi-value">${task.soldRobotCount??0}/${task.boundRobotCount??0}</div></div></div>${walletStatusCards}<p class="result-text">状态判断：参与钱包卖前目标余额大于基线，卖后目标余额小于等于基线，并且输出代币余额增加。完整日志默认折叠，排查时再展开。</p><details class="copy-log-section" data-log-section="participant"><summary>参与钱包历史日志：最近 ${Math.min(participantLogRows.length,40)} / ${participantLogRows.length} 条</summary><div class="table-wrap"><table><thead><tr><th>参与卖出成功</th><th>状态</th><th>参与钱包</th><th>地址</th><th>机器人</th><th>卖前目标Raw</th><th>卖后目标Raw</th><th>输出增加Raw</th><th>错误</th><th>时间</th></tr></thead><tbody>${walletRows||'<tr><td colspan="10" class="empty-state">暂无参与钱包跟卖记录。</td></tr>'}</tbody></table></div></details><details class="copy-log-section" data-log-section="robot"><summary>机器人执行日志：最近 ${Math.min(attempts.length,40)} / ${attempts.length} 条</summary><div class="table-wrap"><table><thead><tr><th>机器人状态</th><th>机器人卖出成功</th><th>机器人</th><th>余额Raw</th><th>剩余目标Raw</th><th>报价Raw</th><th>成交Raw</th><th>授权Tx</th><th>卖出Tx</th><th>重试</th><th>错误</th><th>时间</th></tr></thead><tbody>${robotRows||'<tr><td colspan="12" class="empty-state">暂无机器人执行记录。</td></tr>'}</tbody></table></div></details><details class="copy-log-section" data-log-section="seedbuy"><summary>预买日志：最近 ${Math.min(seedBuys.length,30)} / ${seedBuys.length} 条</summary><div class="table-wrap"><table><thead><tr><th>预买状态</th><th>机器人</th><th>支付Raw</th><th>买入Raw</th><th>买入Tx</th><th>错误</th><th>时间</th></tr></thead><tbody>${seedBuyRows||'<tr><td colspan="7" class="empty-state">暂无机器人预买记录。</td></tr>'}</tbody></table></div></details></div>`;
+  bindCopySellLogSections(box);
+  if(!auto)startCopySellDetailAutoRefresh(taskId);
+  }finally{
+    copySellDetailLoading=false;
+  }
+}
+function renderWalletPicker(){const box=$("#wallet-picker");if(!box)return;const wallets=(state.savedWallets||[]).filter(w=>isEvmAddress(w.address));if(wallets.length===0){box.innerHTML='<span style="font-size:12px;color:var(--muted)">地址簿没有可用于 EVM 刷量的钱包</span>';return}const walletsInput=document.querySelector('[name="wallets"]');const current=(walletsInput?.value||"").split(",").map(s=>s.trim().toLowerCase()).filter(Boolean);box.innerHTML="";for(const w of wallets){const checked=current.includes(w.address.toLowerCase())?"checked":"";const row=document.createElement("label");row.style.cssText="display:flex;align-items:center;gap:8px;padding:4px 0;cursor:pointer;font-size:12px";row.innerHTML=`<input type="checkbox" value="${w.address}" ${checked} style="width:auto;accent-color:var(--pri)"><span style="color:var(--text);font-weight:500">${w.label}</span><span class="mono" style="font-size:11px">${w.address.slice(0,8)}...${w.address.slice(-6)}</span>`;row.querySelector("input").addEventListener("change",()=>{syncWalletPickerToInput()});box.appendChild(row)}}
 function syncWalletPickerToInput(){const box=$("#wallet-picker");if(!box)return;const checked=Array.from(box.querySelectorAll('input[type="checkbox"]:checked')).map(cb=>cb.value);const walletsInput=document.querySelector('[name="wallets"]');if(walletsInput){walletsInput.value=checked.join(",");saveFormMemory()}}
-function renderTokenPicker(){const box=$("#token-picker");if(!box)return;const chain=(document.querySelector('[name="chain"]')?.value||"").toLowerCase();const filtered=state.savedTokens.filter(t=>t.chain===chain);if(filtered.length===0){box.innerHTML='<span style="font-size:12px;color:var(--muted)">当前链无已保存代币</span>';return}box.innerHTML="";for(const t of filtered){const row=document.createElement("div");row.style.cssText="display:flex;align-items:center;gap:8px;padding:6px 4px;cursor:pointer;font-size:12px;border-radius:6px";row.innerHTML=`<span style="color:var(--pri);font-weight:600">${t.symbol||"?"}</span><span style="color:var(--text)">${t.name||""}</span><span class="mono" style="font-size:11px">${t.address.slice(0,8)}...${t.address.slice(-6)}</span>`;row.addEventListener("mouseenter",()=>{row.style.background="var(--card2)"});row.addEventListener("mouseleave",()=>{row.style.background=""});row.addEventListener("click",()=>{const tokenInput=document.querySelector('[name="token"]');if(tokenInput){tokenInput.value=t.address;saveFormMemory()}$("#token-picker").style.display="none"});box.appendChild(row)}}
+function renderDetectWalletSelect(){
+  const select=$("#detect-wallet");
+  if(!select)return;
+  const wallets=(state.savedWallets||[]).filter(w=>isEvmAddress(w.address));
+  select.innerHTML='<option value="">全部钱包</option>';
+  // Sort by label (numeric order)
+  const sorted=[...wallets].sort((a,b)=>{
+    const numA=parseInt(a.label)||999;
+    const numB=parseInt(b.label)||999;
+    return numA-numB;
+  });
+  for(const w of sorted){
+    const label=w.label?`钱包${w.label}`:(w.address.slice(0,10));
+    const opt=document.createElement("option");
+    opt.value=w.address;
+    opt.textContent=label;
+    select.appendChild(opt);
+  }
+}
+function renderDetectTokenSelect(){
+  const select=$("#detect-token");
+  if(!select)return;
+  const chain=($("#detect-chain")?.value||"").toLowerCase();
+  const tokens=(state.savedTokens||[]).filter(t=>!chain||t.chain===chain);
+  select.innerHTML='<option value="">全部代币</option>';
+  for(const t of tokens){
+    const label=t.symbol||t.address.slice(0,10);
+    const opt=document.createElement("option");
+    opt.value=t.address;
+    opt.textContent=`[${chainText(t.chain)}] ${label}`;
+    select.appendChild(opt);
+  }
+}
+function renderTokenPicker(){const box=$("#token-picker");if(!box)return;const chain=(document.querySelector('[name="chain"]')?.value||"").toLowerCase();const filtered=state.savedTokens.filter(t=>t.chain===chain);if(filtered.length===0){box.innerHTML='<span style="font-size:12px;color:var(--muted)">当前链无已保存代币</span>';return}box.innerHTML="";for(const t of filtered){const row=document.createElement("div");row.style.cssText="display:flex;align-items:center;gap:8px;padding:6px 4px;cursor:pointer;font-size:12px;border-radius:6px";row.innerHTML=`<span style="font-size:10px;padding:1px 5px;border-radius:4px;background:var(--card2);color:var(--muted)">${chainText(t.chain)}</span><span style="color:var(--pri);font-weight:600">${t.symbol||"?"}</span><span style="color:var(--text)">${t.name||""}</span><span class="mono" style="font-size:11px">${t.address.slice(0,8)}...${t.address.slice(-6)}</span>`;row.addEventListener("mouseenter",()=>{row.style.background="var(--card2)"});row.addEventListener("mouseleave",()=>{row.style.background=""});row.addEventListener("click",()=>{const tokenInput=document.querySelector('[name="token"]');if(tokenInput){tokenInput.value=t.address;saveFormMemory()}$("#token-picker").style.display="none"});box.appendChild(row)}}
 $("#pick-wallets-btn").addEventListener("click",()=>{const box=$("#wallet-picker");if(!box)return;renderWalletPicker();box.style.display=box.style.display==="none"?"block":"none"});
 $("#pick-token-btn").addEventListener("click",()=>{const box=$("#token-picker");if(!box)return;renderTokenPicker();box.style.display=box.style.display==="none"?"block":"none"});
-document.querySelector('[name="chain"]').addEventListener("change",()=>{renderTokenPicker()});
-$("#ab-add-wallet").addEventListener("click",async()=>{const label=$("#ab-wallet-label").value.trim();const address=$("#ab-wallet-address").value.trim();const result=$("#ab-wallet-result");if(!label||!address){result.textContent="请填写标签和地址。";return}result.textContent="正在添加...";const res=await fetch("/api/address-book/wallets",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({label,address})});const text=await res.text();if(!res.ok){result.textContent=`添加失败：${parseApiError(text)}`;return}result.textContent="添加成功";$("#ab-wallet-label").value="";$("#ab-wallet-address").value="";await fetchSavedWallets()});
+document.querySelector('[name="chain"]').addEventListener("change",()=>{renderTokenPicker();updateBaseTokenSelect(document.querySelector('[name="baseToken"]'),document.querySelector('[name="chain"]').value)});
+updateBaseTokenSelect(document.querySelector('[name="baseToken"]'),document.querySelector('[name="chain"]').value);
+$("#ab-add-wallet").addEventListener("click",async()=>{const label=$("#ab-wallet-label").value.trim();const address=$("#ab-wallet-address").value.trim();const solanaAddress=$("#ab-wallet-solana-address")?.value.trim()||"";const result=$("#ab-wallet-result");if(!label||!address){result.textContent="请填写标签和地址。";return}result.textContent="正在添加...";const payload={label,address};if(solanaAddress)payload.solanaAddress=solanaAddress;const res=await fetch("/api/address-book/wallets",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});const text=await res.text();if(!res.ok){result.textContent=`添加失败：${parseApiError(text)}`;return}result.textContent="添加成功";$("#ab-wallet-label").value="";$("#ab-wallet-address").value="";if($("#ab-wallet-solana-address"))$("#ab-wallet-solana-address").value="";await fetchSavedWallets()});
 $("#ab-add-token").addEventListener("click",async()=>{const chain=$("#ab-token-chain").value;const address=$("#ab-token-address").value.trim();const result=$("#ab-token-result");if(!address){result.textContent="请填写代币合约地址。";return}result.textContent="正在解析代币信息...";const res=await fetch("/api/address-book/tokens",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({chain,address})});const text=await res.text();if(!res.ok){result.textContent=`添加失败：${parseApiError(text)}`;return}const data=JSON.parse(text);result.textContent=`添加成功：${data.symbol||"未知"} (${data.name||"未知"})`;$("#ab-token-address").value="";await fetchSavedTokens()});
-fetchSavedWallets();
+$("#copy-refresh-robots-btn")?.addEventListener("click",refreshRobotWallets);
+$("#copy-refresh-all-btn")?.addEventListener("click",async()=>{await loadCopySellData();$("#copy-robot-result").textContent="跟单卖出数据已刷新。"});
+$("#copy-task-chain")?.addEventListener("change",()=>updateCopySellOutputDefault());
+$("#copy-create-task-btn")?.addEventListener("click",createCopySellTask);
+updateCopySellOutputDefault();
+loadCopySellData().catch(err=>console.error("Failed to fetch copy-sell data:",err));
 fetchSavedTokens();
+
+// === 一键检测 ===
+state.detectedSessions=[];
+function utcDateOnly(value){
+  const d=new Date(value);
+  if(Number.isNaN(d.getTime()))return "";
+  return d.toISOString().slice(0,10);
+}
+function taskTokenList(task){
+  return String(task?.token||"").split(",").map(t=>t.trim().toLowerCase()).filter(Boolean);
+}
+function mergeUiRanges(ranges){
+  const ordered=(ranges||[])
+    .filter(r=>r?.startTime&&r?.endTime)
+    .sort((a,b)=>new Date(a.startTime)-new Date(b.startTime));
+  const merged=[];
+  for(const range of ordered){
+    if(merged.length===0){merged.push({...range});continue}
+    const last=merged[merged.length-1];
+    const rangeStart=new Date(range.startTime);
+    const rangeEnd=new Date(range.endTime);
+    const lastEnd=new Date(last.endTime);
+    if(!Number.isNaN(rangeStart.getTime())&&!Number.isNaN(rangeEnd.getTime())&&!Number.isNaN(lastEnd.getTime())&&rangeStart<=lastEnd){
+      if(rangeEnd>lastEnd)last.endTime=range.endTime;
+      continue;
+    }
+    merged.push({...range});
+  }
+  return merged;
+}
+function findExistingDetectTask(tasks,group,targetDateKey){
+  return tasks.find(t=>{
+    if(String(t.chain||"").toLowerCase()!==group.chain)return false;
+    if(!Array.isArray(t.wallets)||!t.wallets.some(a=>String(a).toLowerCase()===group.wallet))return false;
+    if(utcDateOnly(t.startTime)!==targetDateKey)return false;
+    return taskTokenList(t).includes(group.token);
+  });
+}
+function collectDetectGroups(sessions,selectedToken,selectedChain){
+  const groups=new Map();
+  const selected=(selectedToken||"").toLowerCase();
+  const fallbackChain=(selectedChain||"bsc").toLowerCase();
+  for(const session of sessions||[]){
+    const wallet=String(session.wallet||"").toLowerCase();
+    const sessionTokens=Array.isArray(session.tokens)?session.tokens:[];
+    const candidates=selected?sessionTokens.filter(t=>String(t.address||"").toLowerCase()===selected):sessionTokens;
+    for(const tokenInfo of candidates){
+      const token=String(tokenInfo.address||"").trim().toLowerCase();
+      if(!wallet||!token)continue;
+      const chain=String(tokenInfo.chain||fallbackChain).toLowerCase();
+      const key=`${chain}|${wallet}|${token}`;
+      if(!groups.has(key)){
+        groups.set(key,{chain,wallet,token,tokenSymbol:tokenInfo.symbol||"",walletLabel:session.walletLabel||"",ranges:[]});
+      }
+      groups.get(key).ranges.push({startTime:session.startTime,endTime:session.endTime});
+    }
+  }
+  return Array.from(groups.values()).map(group=>{
+    group.ranges=mergeUiRanges(group.ranges);
+    return group;
+  });
+}
+async function renderDetectJobStatus(job){
+  const summaryCard=$("#detect-summary-card");
+  const sessionsContainer=$("#detect-sessions-container");
+  const pct=Math.max(0,Math.min(100,Number(job.progressPercent||0)));
+  if(summaryCard){
+    summaryCard.style.display="block";
+    const errors=(job.errors||[]).slice(-8).map(e=>`<div style="color:var(--danger);word-break:break-all;margin-top:4px">${escapeHtml(e)}</div>`).join("");
+    summaryCard.innerHTML=`<div class="sub-box-title">后台检测进度</div>
+      <div class="progress-info"><span>${statusText(job.status)} · ${escapeHtml(job.progressMessage||"")}</span><span>${pct}%</span></div>
+      <div class="progress-wrap"><div class="progress-bar" style="width:${pct}%"></div></div>
+      <p class="result-text" style="margin-top:10px">目标日期（UTC）：${escapeHtml(job.targetDate||"-")}；钱包进度：${job.scannedWallets||0}/${job.totalWallets||0}；发现 ${job.detectedRanges||0} 个时间段；新建 ${job.created||0}，追加 ${job.appended||0}，跳过 ${job.skipped||0}，失败 ${job.failed||0}。</p>
+      ${errors?`<div style="margin-top:10px">${errors}</div>`:""}`;
+  }
+  if(sessionsContainer){
+    const rows=(job.rows||[]).map(row=>`<div class="pill" style="margin:0 6px 6px 0">${escapeHtml(row)}</div>`).join("");
+    sessionsContainer.innerHTML=rows?`<div class="sub-box"><div class="sub-box-title">检测到的钱包</div>${rows}</div>`:"";
+  }
+}
+async function pollDetectJob(jobId){
+  const result=$("#detect-result");
+  const btn=$("#detect-btn");
+  state.activeDetectJobId=jobId;
+  localStorage.setItem("okx_active_detect_job",jobId);
+  btn.disabled=true;
+  try{
+    while(state.activeDetectJobId===jobId){
+      const res=await fetch(`/api/detect/jobs/${jobId}`);
+      const text=await res.text();
+      if(!res.ok)throw new Error(parseApiError(text));
+      const job=JSON.parse(text);
+      await renderDetectJobStatus(job);
+      result.textContent=`后台检测中：${job.progressMessage||""}`;
+      if(job.status==="completed"||job.status==="failed"){
+        localStorage.removeItem("okx_active_detect_job");
+        state.activeDetectJobId=null;
+        btn.disabled=false;
+        result.textContent=`检测结束：新建 ${job.created||0}，追加 ${job.appended||0}，跳过 ${job.skipped||0}，失败 ${job.failed||0}。`;
+        if((job.created||0)>0||(job.appended||0)>0){
+          await fetchTasks();
+          document.querySelector('.nav-item[data-panel="list"]').click();
+        }
+        return job;
+      }
+      await new Promise(resolve=>setTimeout(resolve,3000));
+    }
+  }catch(err){
+    localStorage.removeItem("okx_active_detect_job");
+    state.activeDetectJobId=null;
+    btn.disabled=false;
+    result.textContent=`检测任务读取失败：${String(err)}`;
+  }
+}
+async function detectSessions(){
+  const targetDate=$("#detect-date").value.trim()||null;
+  const selectedWallet=$("#detect-wallet").value.trim()||null;
+  const selectedToken=$("#detect-token").value.trim()||null;
+  const selectedChain=$("#detect-chain").value||"bsc";
+  const result=$("#detect-result");
+  const btn=$("#detect-btn");
+  const summaryCard=$("#detect-summary-card");
+  const sessionsContainer=$("#detect-sessions-container");
+  if(summaryCard){summaryCard.style.display="none";summaryCard.innerHTML=""}
+  if(sessionsContainer)sessionsContainer.innerHTML="";
+  const payload={
+    chain:selectedChain,
+    boostMultiplier:Number($("#detect-boost").value)||0.6,
+    baseToken:$("#detect-base-token").value||"USDT"
+  };
+  if(targetDate)payload.targetDate=targetDate;
+  if(selectedWallet)payload.walletAddress=selectedWallet;
+  if(selectedToken)payload.tokenAddress=selectedToken;
+  result.textContent="正在创建后台检测任务...";
+  btn.disabled=true;
+  try{
+    const res=await fetch("/api/detect/jobs",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+    const text=await res.text();
+    if(!res.ok){result.textContent=`检测启动失败：${parseApiError(text)}`;btn.disabled=false;return}
+    const job=JSON.parse(text);
+    result.textContent=`后台检测任务已创建：${job.jobId}`;
+    await pollDetectJob(job.jobId);
+  }catch(err){
+    btn.disabled=false;
+    result.textContent=`检测启动失败：${String(err)}`;
+  }
+}
+function resumeActiveDetectJob(){
+  const jobId=localStorage.getItem("okx_active_detect_job");
+  if(jobId)pollDetectJob(jobId);
+}
+$("#detect-btn").addEventListener("click",detectSessions);
+$("#detect-chain").addEventListener("change",()=>{renderDetectTokenSelect();updateBaseTokenSelect($("#detect-base-token"),$("#detect-chain").value)});
+updateBaseTokenSelect($("#detect-base-token"),$("#detect-chain").value);
+resumeActiveDetectJob();
+
+// === 空投检测 ===
+const todayUtcDate=()=>new Date().toISOString().slice(0,10);
+function renderRewardWalletSelect(){
+  const select=$("#reward-wallet");
+  if(!select)return;
+  const current=select.value||"";
+  const chain=($("#reward-chain")?.value||"bsc").toLowerCase();
+  select.innerHTML='<option value="">全部钱包</option>';
+  for(const w of (state.savedWallets||[])){
+    const sol=walletSolanaAddress(w);
+    if(chain==="solana"&&!sol)continue;
+    if(chain!=="solana"&&!isEvmAddress(w.address))continue;
+    const opt=document.createElement("option");
+    opt.value=w.address;
+    const shown=chain==="solana"?sol:w.address;
+    opt.textContent=`${w.label||"钱包"} (${walletShort(shown)})`;
+    select.appendChild(opt);
+  }
+  if(current&&Array.from(select.options).some(op=>op.value.toLowerCase()===current.toLowerCase()))select.value=current;
+}
+function updateRewardAddressHints(){
+  const chain=($("#reward-chain")?.value||"bsc").toLowerCase();
+  const token=$("#reward-token");
+  if(token)token.placeholder=chain==="solana"?"Solana SPL Token Mint":"0x...";
+}
+function rewardDisplayName(item){
+  if(!item)return "-";
+  const project=item.projectName||item.tokenSymbol||item.tokenAddress?.slice(0,10)||"-";
+  return `第 ${item.period} 期 - ${rewardStatusText(item.status||"completed")} - ${project} - ${chainText(item.chain)} - ${item.scanDate}`;
+}
+function nextRewardPeriodForCurrentInput(){
+  const chain=($("#reward-chain")?.value||"").toLowerCase();
+  const tokenRaw=($("#reward-token")?.value||"").trim();
+  const token=chain==="solana"?tokenRaw:tokenRaw.toLowerCase();
+  if(!chain||!token)return 1;
+  let maxPeriod=0;
+  for(const item of state.rewardHistory||[]){
+    if((item.chain||"").toLowerCase()!==chain)continue;
+    const itemToken=chain==="solana"?(item.tokenAddress||""):(item.tokenAddress||"").toLowerCase();
+    if(itemToken!==token)continue;
+    const period=Number(item.period||0);
+    if(Number.isFinite(period)&&period>maxPeriod)maxPeriod=period;
+  }
+  return maxPeriod+1;
+}
+function updateRewardPeriodDefault(force=false){
+  const input=$("#reward-period");
+  if(!input)return;
+  const next=nextRewardPeriodForCurrentInput();
+  input.placeholder=`自动=${next}`;
+  input.dataset.defaultPeriod=String(next);
+  if(force||!input.dataset.manualPeriod||!input.value){
+    input.value=String(next);
+    input.dataset.manualPeriod="";
+  }
+}
+function rewardContractStatusText(status){
+  return status==="ignored"?"已排除":"自动计入";
+}
+function rewardContractStatusBadge(status){
+  return status==="ignored"?"badge-failed":"badge-completed";
+}
+function renderRewardContracts(items){
+  const box=$("#reward-contracts-container");
+  if(!box)return;
+  const rows=Array.isArray(items)?items:[];
+  if(rows.length===0){
+    box.innerHTML='<div class="empty-state">暂无已识别合约。平时不用处理这里，跑完空投检测后如果有误判再来排除。</div>';
+    return;
+  }
+  box.innerHTML=`<div class="table-wrap"><table>
+    <thead><tr><th>状态</th><th>合约</th><th>函数</th><th>命中</th><th>首次交易</th><th>操作</th></tr></thead>
+    <tbody>${rows.map(item=>`
+      <tr>
+        <td><span class="badge ${rewardContractStatusBadge(item.status)}">${rewardContractStatusText(item.status)}</span></td>
+        <td><div class="mono">${escapeHtml(item.contractAddress)}</div><div style="font-size:11px;color:var(--muted)">代币：${escapeHtml(item.tokenAddress)}</div></td>
+        <td><span class="mono">${escapeHtml(item.functionSelector||"-")}</span></td>
+        <td>${Number(item.hitCount||0)}</td>
+        <td><span class="mono">${escapeHtml(item.firstSeenTx?`${item.firstSeenTx.slice(0,10)}...${item.firstSeenTx.slice(-8)}`:"-")}</span></td>
+        <td>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            ${item.status==="ignored"
+              ? `<button class="btn btn-secondary btn-sm" data-reward-contract-id="${item.contractId}" data-reward-contract-status="candidate">恢复计入</button>`
+              : `<button class="btn btn-danger btn-sm" data-reward-contract-id="${item.contractId}" data-reward-contract-status="ignored">排除</button>`}
+          </div>
+        </td>
+      </tr>`).join("")}</tbody>
+  </table></div>`;
+  box.querySelectorAll("button[data-reward-contract-id]").forEach(btn=>{
+    btn.addEventListener("click",async()=>{
+      const id=btn.dataset.rewardContractId;
+      const status=btn.dataset.rewardContractStatus;
+      if(!id||!status)return;
+      btn.disabled=true;
+      try{
+        await updateRewardContractStatus(id,status);
+      }finally{
+        btn.disabled=false;
+      }
+    });
+  });
+}
+async function loadRewardContracts(){
+  const chain=($("#reward-chain")?.value||"").toLowerCase();
+  const token=($("#reward-token")?.value||"").trim().toLowerCase();
+  if(chain==="solana"){
+    state.rewardContracts=[];
+    renderRewardContracts([]);
+    return;
+  }
+  const qs=new URLSearchParams();
+  if(chain)qs.set("chain",chain);
+  if(token&&!/^0x[a-fA-F0-9]{40}$/.test(token)){
+    state.rewardContracts=[];
+    renderRewardContracts([]);
+    return;
+  }
+  if(token)qs.set("tokenAddress",token);
+  const res=await fetch(`/api/rewards/contracts?${qs.toString()}`);
+  const text=await res.text();
+  if(!res.ok)throw new Error(parseApiError(text));
+  const items=JSON.parse(text);
+  state.rewardContracts=Array.isArray(items)?items:[];
+  renderRewardContracts(state.rewardContracts);
+}
+async function updateRewardContractStatus(id,status){
+  const res=await fetch(`/api/rewards/contracts/${id}`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({status})});
+  const text=await res.text();
+  if(!res.ok){
+    const result=$("#reward-result");
+    if(result)result.textContent=`修改排除规则失败：${parseApiError(text)}`;
+    return;
+  }
+  const result=$("#reward-result");
+  if(result)result.textContent=`排除规则已更新：${rewardContractStatusText(status)}。重新检测后生效。`;
+  await loadRewardContracts();
+}
+function selectedRewardForSync(){
+  const id=$("#reward-sync-record")?.value||"";
+  return state.rewardHistory.find(item=>item.rewardId===id)||state.currentReward||null;
+}
+function renderRewardSyncRecordSelect(preferredId){
+  const select=$("#reward-sync-record");
+  if(!select)return;
+  const current=preferredId||select.value||state.currentReward?.rewardId||"";
+  select.innerHTML='<option value="">请选择空投记录</option>';
+  for(const item of state.rewardHistory||[]){
+    const opt=document.createElement("option");
+    opt.value=item.rewardId;
+    opt.textContent=rewardDisplayName(item);
+    select.appendChild(opt);
+  }
+  if(current&&Array.from(select.options).some(op=>op.value===current))select.value=current;
+  renderRewardSyncWalletSelect();
+  renderRewardFeishuTableSelect();
+}
+function renderRewardSyncWalletSelect(){
+  const select=$("#reward-sync-wallet");
+  if(!select)return;
+  const current=select.value||"";
+  const item=selectedRewardForSync();
+  select.innerHTML='<option value="">全部非零钱包</option>';
+  for(const [idx,w] of (item?.wallets||item?.results||[]).entries()){
+    const opt=document.createElement("option");
+    opt.value=w.wallet;
+    const name=w.walletLabel||`钱包 ${idx+1}`;
+    opt.textContent=`${idx+1}. ${name} - 领 ${num(w.claimed,4)} / 卖 ${num(w.soldUsdt,4)}`;
+    select.appendChild(opt);
+  }
+  if(current&&Array.from(select.options).some(op=>op.value.toLowerCase()===current.toLowerCase()))select.value=current;
+  renderRewardFeishuTableSelect();
+}
+function saveRewardMemory(){
+  const snap={chain:$("#reward-chain")?.value||"bsc",wallet:$("#reward-wallet")?.value||"",token:$("#reward-token")?.value?.trim()||"",scanDate:$("#reward-date")?.value?.trim()||""};
+  safeSetStorageItem(STORAGE_KEYS.reward,JSON.stringify(snap));
+}
+function loadRewardMemory(){
+  const raw=safeGetStorageItem(STORAGE_KEYS.reward);
+  if(!raw){if($("#reward-date"))$("#reward-date").value=todayUtcDate();return}
+  try{
+    const snap=JSON.parse(raw);
+    if($("#reward-chain")&&snap.chain)$("#reward-chain").value=snap.chain;
+    if($("#reward-token")&&typeof snap.token==="string")$("#reward-token").value=snap.token;
+    if($("#reward-date"))$("#reward-date").value=snap.scanDate||todayUtcDate();
+    if($("#reward-wallet")&&typeof snap.wallet==="string")$("#reward-wallet").value=snap.wallet;
+  }catch(_){if($("#reward-date"))$("#reward-date").value=todayUtcDate()}
+}
+function renderRewardCurrent(data){
+  const card=$("#reward-current-card"),summary=$("#reward-current-summary"),tbody=document.querySelector("#reward-current-table tbody");
+  if(!card||!summary||!tbody)return;
+  card.style.display="block";
+  const project=escapeHtml(data.projectName||data.tokenSymbol||data.tokenAddress||"-");
+  const status=data.status||"completed";
+  const error=data.errorMessage?`<div class="kpi-card" style="grid-column:1/-1;border-color:rgba(248,81,73,.35)"><span class="kpi-label">错误信息</span><span class="kpi-value" style="font-size:13px;color:var(--danger);word-break:break-all">${escapeHtml(localizeErrorMessage(data.errorMessage))}</span></div>`:"";
+  summary.innerHTML=`
+    <div class="kpi-card"><span class="kpi-label">状态</span><span class="kpi-value"><span class="badge badge-${status}">${rewardStatusText(status)}</span></span></div>
+    <div class="kpi-card"><span class="kpi-label">项目</span><span class="kpi-value">${project}</span></div>
+    <div class="kpi-card"><span class="kpi-label">期数</span><span class="kpi-value">${data.period||"-"}</span></div>
+    <div class="kpi-card"><span class="kpi-label">合计领取</span><span class="kpi-value">${num(data.totalClaimed,4)}</span></div>
+    <div class="kpi-card"><span class="kpi-label">合计卖出稳定币</span><span class="kpi-value">${num(data.totalSoldUsdt,4)}</span></div>${error}`;
+  const rows=Array.isArray(data.results)?data.results:[];
+  tbody.innerHTML=rows.map((r,idx)=>`<tr>
+    <td>${idx+1}</td>
+    <td><div style="font-weight:600">${escapeHtml(r.walletLabel||"未命名钱包")}</div><div class="mono">${escapeHtml(r.wallet)}</div></td>
+    <td>${num(r.claimed,4)}</td>
+    <td>${num(r.soldUsdt,4)}</td>
+  </tr>`).join("");
+}
+function renderRewardHistory(items){
+  const tbody=document.querySelector("#reward-history-table tbody"),empty=$("#reward-history-empty");
+  if(!tbody||!empty)return;
+  if(!items||items.length===0){tbody.innerHTML="";empty.style.display="block";renderRewardSyncRecordSelect();return}
+  empty.style.display="none";
+  tbody.innerHTML=items.map(item=>{
+    const wallets=(item.wallets||[]).map((w,idx)=>`${idx+1}. ${escapeHtml(w.walletLabel||w.wallet.slice(0,8))}: 领 ${num(w.claimed,4)} / 卖 ${num(w.soldUsdt,4)}`).join("<br>");
+    const status=item.status||"completed";
+    return `<tr>
+      <td><div style="display:flex;gap:6px;align-items:center;min-width:120px"><input class="reward-period-row-input" data-reward-period-id="${escapeHtml(item.rewardId)}" type="number" min="1" step="1" value="${item.period}" style="width:72px;padding:5px 8px"><button class="btn btn-secondary btn-sm" data-reward-period-save="${escapeHtml(item.rewardId)}">保存</button></div></td>
+      <td><span class="badge badge-${status}">${rewardStatusText(status)}</span>${item.errorMessage?`<div style="margin-top:4px;color:var(--danger);font-size:11px">${escapeHtml(localizeErrorMessage(item.errorMessage))}</div>`:""}</td>
+      <td><div style="font-weight:700;color:var(--pri)">${escapeHtml(item.projectName||item.tokenSymbol||item.tokenAddress?.slice(0,10)||"-")}</div><div class="mono">${escapeHtml(item.tokenAddress||"")}</div></td>
+      <td>${chainText(item.chain)}</td>
+      <td>${escapeHtml(item.scanDate)}</td>
+      <td>${num(item.totalClaimed,4)}</td>
+      <td>${num(item.totalSoldUsdt,4)}</td>
+      <td>${wallets||"-"}</td>
+      <td><button class="btn btn-danger btn-sm" data-reward-id="${escapeHtml(item.rewardId)}">删除</button></td>
+    </tr>`;
+  }).join("");
+  tbody.querySelectorAll("button[data-reward-period-save]").forEach(btn=>{
+    btn.addEventListener("click",async()=>{
+      const id=btn.dataset.rewardPeriodSave;
+      const input=Array.from(tbody.querySelectorAll("input[data-reward-period-id]")).find(el=>el.dataset.rewardPeriodId===id);
+      const raw=input?.value?.trim()||"";
+      if(!id||!/^[1-9]\d*$/.test(raw)){ $("#reward-result").textContent="期数必须是正整数。"; return }
+      btn.disabled=true;
+      try{
+        const res=await fetch(`/api/rewards/${id}`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({period:Number(raw)})});
+        const text=await res.text();
+        if(!res.ok){$("#reward-result").textContent=`修改期数失败：${parseApiError(text)}`;return}
+        const data=JSON.parse(text);
+        if(state.currentReward?.rewardId===data.rewardId){state.currentReward=data;renderRewardCurrent(data)}
+        $("#reward-result").textContent=`已修改为第 ${data.period} 期。`;
+        await loadRewards();
+      }catch(err){$("#reward-result").textContent=`修改期数失败：${String(err)}`}
+      finally{btn.disabled=false}
+    });
+  });
+  tbody.querySelectorAll("button[data-reward-id]").forEach(btn=>{
+    btn.addEventListener("click",async()=>{
+      const id=btn.dataset.rewardId;
+      if(!id||!window.confirm(`确认删除空投记录 ${id} 吗？`))return;
+      const res=await fetch(`/api/rewards/${id}`,{method:"DELETE"});
+      if(!res.ok){$("#reward-result").textContent=`删除失败：${parseApiError(await res.text())}`;return}
+      $("#reward-result").textContent="已删除空投记录。";
+      await loadRewards();
+    });
+  });
+  renderRewardSyncRecordSelect();
+}
+async function loadRewards(){
+  const res=await fetch("/api/rewards");
+  if(!res.ok)throw new Error(parseApiError(await res.text()));
+  const items=await res.json();
+  state.rewardHistory=Array.isArray(items)?items:[];
+  renderRewardHistory(state.rewardHistory);
+  updateRewardPeriodDefault(false);
+}
+function stopRewardPoll(){
+  if(rewardPollTimer){clearTimeout(rewardPollTimer);rewardPollTimer=null}
+}
+async function fetchRewardDetail(rewardId){
+  const res=await fetch(`/api/rewards/${rewardId}`);
+  const text=await res.text();
+  if(!res.ok)throw new Error(parseApiError(text));
+  return JSON.parse(text);
+}
+function startRewardPoll(rewardId){
+  stopRewardPoll();
+  const btn=$("#reward-scan-btn"),result=$("#reward-result");
+  const tick=async()=>{
+    try{
+      const data=await fetchRewardDetail(rewardId);
+      state.currentReward=data;
+      renderRewardCurrent(data);
+      await loadRewards();
+      renderRewardSyncRecordSelect(data.rewardId);
+      if(data.status==="running"){
+        if(result)result.textContent=`空投检测后台运行中：第 ${data.period} 期。页面会自动刷新结果，期间不要重复点击。`;
+        rewardPollTimer=setTimeout(tick,3000);
+        return;
+      }
+      stopRewardPoll();
+      if(btn)btn.disabled=false;
+      await loadRewardContracts().catch(()=>{});
+      if(data.status==="completed"){
+        if(result)result.textContent=`检测完成：${data.projectName||data.tokenSymbol||data.tokenAddress?.slice(0,10)} 第 ${data.period} 期，合计领取 ${num(data.totalClaimed,4)}，卖出稳定币 ${num(data.totalSoldUsdt,4)}。`;
+      }else{
+        if(result)result.textContent=`检测失败：${localizeErrorMessage(data.errorMessage)||"未知错误"}`;
+      }
+    }catch(err){
+      stopRewardPoll();
+      if(btn)btn.disabled=false;
+      if(result)result.textContent=`刷新空投结果失败：${String(err)}`;
+    }
+  };
+  tick();
+}
+async function syncRewardToFeishu(){
+  const result=$("#reward-sync-result"),btn=$("#reward-sync-btn");
+  const rewardId=$("#reward-sync-record")?.value||"";
+  const tableId=$("#reward-sync-table")?.value||null;
+  const wallet=$("#reward-sync-wallet")?.value||null;
+  const periodRaw=$("#reward-sync-period")?.value?.trim()||"";
+  if(!rewardId){result.textContent="请选择要同步的空投记录。";return}
+  if(periodRaw&&!/^[1-9]\d*$/.test(periodRaw)){result.textContent="飞书期数必须是正整数，或留空。";return}
+  const payload={
+    tableId,
+    walletAddress:wallet,
+    periodOverride:periodRaw?Number(periodRaw):null,
+    dateField:"日期",
+    periodField:"期数",
+    projectField:"项目",
+    quantityField:"数量",
+    avgSellPriceField:"",
+    boostClaimField:"Boost领取奖励",
+    includeZeroWallets:false
+  };
+  result.textContent="正在同步到飞书...";
+  btn.disabled=true;
+  try{
+    const res=await fetch(`/api/rewards/${rewardId}/sync-feishu`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+    const text=await res.text();
+    if(!res.ok){result.textContent=`同步失败：${parseApiError(text)}`;return}
+    const data=JSON.parse(text);
+    result.textContent=`同步完成：已追加 ${data.appendedCount} 条到 ${data.tableId==="wallet_mappings"?"地址簿关联子表":("表 "+data.tableId)}。`;
+  }catch(err){result.textContent=`同步失败：${String(err)}`}
+  finally{btn.disabled=false}
+}
+async function scanRewards(){
+  const result=$("#reward-result"),btn=$("#reward-scan-btn");
+  const chain=$("#reward-chain").value||"bsc";
+  const token=chain==="solana"?$("#reward-token").value.trim():$("#reward-token").value.trim().toLowerCase();
+  const wallet=$("#reward-wallet").value||null;
+  const scanDate=$("#reward-date").value.trim()||todayUtcDate();
+  const periodRaw=$("#reward-period")?.value?.trim()||"";
+  if(!token){result.textContent="请填写空投代币合约。";return}
+  if(chain==="solana"){
+    if(!isSolanaAddress(token)){result.textContent="Solana Token Mint 格式不正确。";return}
+  }else if(!isEvmAddress(token)){
+    result.textContent="代币合约格式不正确。";
+    return;
+  }
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(scanDate)){result.textContent="扫描日期请填写 YYYY-MM-DD（UTC）。";return}
+  if(periodRaw&&!/^[1-9]\d*$/.test(periodRaw)){result.textContent="期数必须是正整数。";return}
+  const payload={chain,tokenAddress:token,scanDate};
+  if(wallet)payload.walletAddress=wallet;
+  if(periodRaw)payload.period=Number(periodRaw);
+  saveRewardMemory();
+  result.textContent=wallet?"正在创建选中钱包空投后台检测...":"正在创建全部钱包空投后台检测...";
+  btn.disabled=true;
+  try{
+    const res=await fetch("/api/rewards/scan",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+    const text=await res.text();
+    if(!res.ok){result.textContent=`检测失败：${parseApiError(text)}`;btn.disabled=false;return}
+    const data=JSON.parse(text);
+    state.currentReward=data;
+    renderRewardCurrent(data);
+    result.textContent=`已创建后台检测：第 ${data.period} 期，正在扫描链上数据...`;
+    await loadRewards();
+    renderRewardSyncRecordSelect(data.rewardId);
+    updateRewardPeriodDefault(true);
+    await loadRewardContracts().catch(()=>{});
+    startRewardPoll(data.rewardId);
+  }catch(err){result.textContent=`检测失败：${String(err)}`;btn.disabled=false}
+}
+loadRewardMemory();
+updateRewardAddressHints();
+initDatePicker($("#reward-date"),saveRewardMemory);
+renderRewardWalletSelect();
+renderRewardFeishuTableSelect();
+loadRewardContracts().catch(()=>{});
+$("#reward-chain")?.addEventListener("change",()=>{updateRewardAddressHints();renderRewardWalletSelect();saveRewardMemory();updateRewardPeriodDefault(true);loadRewardContracts().catch(()=>{})});
+$("#reward-wallet")?.addEventListener("change",saveRewardMemory);
+$("#reward-token")?.addEventListener("input",()=>{saveRewardMemory();updateRewardPeriodDefault(true);loadRewardContracts().catch(()=>{})});
+$("#reward-period")?.addEventListener("input",()=>{$("#reward-period").dataset.manualPeriod="1"});
+$("#reward-date")?.addEventListener("input",saveRewardMemory);
+$("#reward-date")?.addEventListener("change",saveRewardMemory);
+$("#reward-scan-btn")?.addEventListener("click",scanRewards);
+$("#reward-refresh-btn")?.addEventListener("click",async()=>{try{await loadRewards();await loadRewardContracts();$("#reward-result").textContent="空投历史已刷新。"}catch(err){$("#reward-result").textContent=`刷新失败：${String(err)}`}});
+$("#reward-contract-refresh-btn")?.addEventListener("click",async()=>{try{await loadRewardContracts();$("#reward-result").textContent="已识别合约已刷新。"}catch(err){$("#reward-result").textContent=`刷新已识别合约失败：${String(err)}`}});
+$("#reward-sync-record")?.addEventListener("change",renderRewardSyncWalletSelect);
+$("#reward-sync-wallet")?.addEventListener("change",renderRewardFeishuTableSelect);
+$("#reward-sync-btn")?.addEventListener("click",syncRewardToFeishu);
+
+// === 盈亏总览 ===
+function defaultProfitStartDate(){const d=new Date();return`${d.getFullYear()}-01-01`}
+function defaultProfitEndDate(){const d=new Date();return`${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`}
+function applyProfitDateFilterUi(){
+  const enabled=!!$("#profit-use-date-filter")?.checked;
+  const start=$("#profit-start-date"),end=$("#profit-end-date");
+  if(enabled){
+    if(start&&!start.value)start.value=defaultProfitStartDate();
+    if(end&&!end.value)end.value=defaultProfitEndDate();
+  }else{
+    if(start)start.value="";
+    if(end)end.value="";
+  }
+  ["#profit-start-date","#profit-end-date"].forEach(sel=>{const el=$(sel);if(el)el.disabled=!enabled});
+}
+function loadProfitSettings(){
+  let snap={};
+  try{snap=JSON.parse(safeGetStorageItem(STORAGE_KEYS.profit)||"{}")}catch(_){snap={}}
+  const useDateFilter=snap.useDateFilter===true;
+  if($("#profit-use-date-filter"))$("#profit-use-date-filter").checked=useDateFilter;
+  if($("#profit-start-date")&&!$("#profit-start-date").value)$("#profit-start-date").value=useDateFilter?(snap.startDate||defaultProfitStartDate()):"";
+  if($("#profit-end-date")&&!$("#profit-end-date").value)$("#profit-end-date").value=useDateFilter?(snap.endDate||defaultProfitEndDate()):"";
+  if($("#profit-rebate-table")&&snap.rebateTableId&&!$("#profit-rebate-table").value)$("#profit-rebate-table").value=snap.rebateTableId;
+  if($("#profit-wear-field")&&snap.wearField)$("#profit-wear-field").value=snap.wearField;
+  if($("#profit-income-field")&&snap.incomeField)$("#profit-income-field").value=snap.incomeField;
+  if($("#profit-rebate-amount-field")&&snap.rebateAmountField)$("#profit-rebate-amount-field").value=snap.rebateAmountField;
+  if($("#profit-rebate-wallet-field")&&snap.rebateWalletField)$("#profit-rebate-wallet-field").value=snap.rebateWalletField;
+  applyProfitDateFilterUi();
+  return snap;
+}
+function saveProfitSettings(){
+  const snap={
+    useDateFilter:!!$("#profit-use-date-filter")?.checked,
+    startDate:$("#profit-start-date")?.value?.trim()||"",
+    endDate:$("#profit-end-date")?.value?.trim()||"",
+    rebateTableId:$("#profit-rebate-table")?.value||"",
+    wearField:$("#profit-wear-field")?.value?.trim()||"磨损",
+    incomeField:$("#profit-income-field")?.value?.trim()||"Boost领取奖励",
+    rebateAmountField:$("#profit-rebate-amount-field")?.value?.trim()||"金额",
+    rebateWalletField:$("#profit-rebate-wallet-field")?.value?.trim()||"多选"
+  };
+  safeSetStorageItem(STORAGE_KEYS.profit,JSON.stringify(snap));
+}
+function profitMoney(value){const n=Number(value||0);const sign=n<0?"-":"";return`${sign}$${Math.abs(n).toFixed(2)}`}
+function profitClass(value){const n=Number(value||0);return n>=0?"color:var(--success)":"color:var(--danger)"}
+function profitNumber(value){const n=Number(value||0);return Number.isFinite(n)?n:0}
+function profitIntLabel(value){return String(Math.round(profitNumber(value)))}
+function renderProfitOverall(data){
+  const box=$("#profit-overall"),source=$("#profit-source");
+  if(!box)return;
+  const t=data?.totals||{},s=data?.sourceStats||{};
+  box.innerHTML=`<div class="profit-hero">
+    <div class="profit-net-card">
+      <div class="profit-net-label">总净利润</div>
+      <div class="profit-net-value" style="${profitClass(t.netProfit)}">${profitMoney(t.netProfit)}</div>
+      <div class="profit-net-sub">净利润 = 收益 - (损耗 - 返佣)。Gas 已计入磨损。</div>
+    </div>
+    <div class="profit-metric-grid">
+      <div class="profit-metric"><span>总损耗</span><strong>${profitMoney(t.loss)}</strong></div>
+      <div class="profit-metric"><span>总返佣</span><strong>${profitMoney(t.rebate)}</strong></div>
+      <div class="profit-metric"><span>实际总损耗</span><strong>${profitMoney(t.actualLoss)}</strong></div>
+      <div class="profit-metric"><span>总收益</span><strong>${profitMoney(t.income)}</strong></div>
+    </div>
+  </div>`;
+  if(source){
+    const unmatched=(s.unmatchedRebateSelections||[]).map(i=>`${i.date||"-"} ${profitMoney(i.amount)} [${(i.selected||[]).join(",")||"空"}]`).join("；");
+    source.innerHTML=`<div class="profit-source">
+      <div class="profit-source-card"><span>钱包数</span><strong>${s.walletCount??0}</strong></div>
+      <div class="profit-source-card"><span>返佣记录</span><strong>${s.rebateRecordCount??0}</strong></div>
+      <div class="profit-source-card"><span>返佣命中</span><strong style="color:var(--success)">${s.rebateMatchedCount??0}</strong></div>
+      <div class="profit-source-card"><span>未匹配返佣</span><strong style="${Number(s.rebateUnmatchedCount||0)>0?'color:var(--warning)':''}">${s.rebateUnmatchedCount??0}</strong></div>
+      <div class="profit-source-card"><span>已应用修正</span><strong>${s.appliedAdjustmentCount??0}</strong></div>
+    </div>${unmatched?`<p class="result-text">未匹配返佣示例：${escapeHtml(unmatched)}</p>`:""}`;
+  }
+}
+function renderProfitChart(data){
+  const box=$("#profit-chart");
+  if(!box)return;
+  const months=data?.months||[];
+  const wallets=(data?.wallets||[]).filter(w=>(w.months||[]).some(m=>profitNumber(m.loss)||profitNumber(m.rebate)||profitNumber(m.income)));
+  if(months.length===0||wallets.length===0){box.innerHTML='<div class="empty-state">暂无月度数据。</div>';return}
+  const walletLabels=wallets.map(w=>w.walletKey||w.label||"-");
+  const palette=["#00d4aa","#58a6ff","#f2cc60","#a371f7","#f778ba","#79c0ff","#ffa657","#3fb950","#ff7b72","#8b949e"];
+  const rows=months.map(month=>({month,wallets:wallets.map((w,idx)=>{
+    const found=(w.months||[]).find(m=>m.month===month)||{};
+    return {wallet:w,walletLabel:walletLabels[idx],netProfit:profitNumber(found.netProfit),income:profitNumber(found.income),loss:profitNumber(found.loss),rebate:profitNumber(found.rebate),actualLoss:profitNumber(found.actualLoss),color:palette[idx%palette.length]};
+  })}));
+  const groupW=Math.max(170,wallets.length*34+64);
+  const width=Math.max(1040,months.length*groupW+92),height=420,padL=66,padR=32,padT=54,padB=66,chartH=height-padT-padB;
+  const nums=rows.flatMap(r=>r.wallets.map(w=>w.netProfit));
+  const max=Math.max(1,...nums),min=Math.min(0,...nums);
+  const span=max-min||1;
+  const y=v=>padT+(max-v)/span*chartH;
+  const zeroY=y(0);
+  const innerW=Math.min(groupW-46,wallets.length*34);
+  const barW=Math.max(15,Math.min(24,innerW/Math.max(1,wallets.length)-10));
+  const grid=[0,.25,.5,.75,1].map(p=>{
+    const val=max-(max-min)*p,gy=y(val);
+    return `<line x1="${padL}" y1="${gy}" x2="${width-padR}" y2="${gy}" stroke="rgba(139,148,158,.13)" stroke-dasharray="4 7"/><text x="12" y="${gy+4}" fill="rgba(139,148,158,.8)" font-size="11">${Math.round(val)}</text>`;
+  }).join("");
+  const gradients=wallets.map((w,idx)=>`<linearGradient id="profitBar${idx}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${palette[idx%palette.length]}" stop-opacity="1"/><stop offset="1" stop-color="${palette[idx%palette.length]}" stop-opacity=".5"/></linearGradient>`).join("");
+  const bars=rows.map((r,idx)=>{
+    const cx=padL+idx*groupW+groupW/2;
+    const groupX=padL+idx*groupW+10;
+    const startX=cx-(wallets.length*barW+(wallets.length-1)*10)/2;
+    const monthBars=r.wallets.map((item,widx)=>{
+      const value=item.netProfit;
+      const hasData=profitNumber(item.income)||profitNumber(item.loss)||profitNumber(item.rebate)||profitNumber(item.actualLoss);
+      if(!hasData)return "";
+      const yy=y(value),h=Math.abs(yy-zeroY),top=Math.min(yy,zeroY);
+      const x=startX+widx*(barW+10),center=x+barW/2;
+      const label=profitIntLabel(value),labelW=Math.max(24,label.length*6+10);
+      const labelY=value>=0?Math.max(20,top-9):Math.min(height-padB+26,top+h+20);
+      const labelRectY=labelY-14;
+      const labelColor=value>=0?"#f0f6fc":"#ff7b72";
+      return `<g>
+        <rect x="${x}" y="${top}" width="${barW}" height="${Math.max(3,h)}" rx="7" fill="url(#profitBar${widx})" opacity="${value===0?0.34:0.95}"><title>${r.month} ${item.walletLabel} 净利 ${profitMoney(value)} / 收益 ${profitMoney(item.income)} / 损耗 ${profitMoney(item.loss)} / 返佣 ${profitMoney(item.rebate)}</title></rect>
+        <rect x="${center-labelW/2}" y="${labelRectY}" width="${labelW}" height="18" rx="9" fill="rgba(13,17,23,.82)" stroke="rgba(230,237,243,.09)"/>
+        <text x="${center}" y="${labelY}" text-anchor="middle" fill="${labelColor}" font-size="10" font-weight="800">${label}</text>
+      </g>`;
+    }).join("");
+    return `<g>
+      <rect x="${groupX}" y="${padT-22}" width="${groupW-20}" height="${height-padT-20}" rx="16" fill="${idx%2?'rgba(255,255,255,.014)':'rgba(0,212,170,.022)'}" stroke="rgba(139,148,158,.07)"/>
+      ${monthBars}
+      <text x="${cx}" y="${height-26}" text-anchor="middle" fill="var(--text)" font-size="13" font-weight="800">${r.month}</text>
+    </g>`;
+  }).join("");
+  const legend=wallets.map((w,idx)=>`<span><i style="background:${palette[idx%palette.length]}"></i>${escapeHtml(w.walletKey||w.label||"-")}</span>`).join("");
+  box.innerHTML=`<div class="profit-chart-shell"><div class="profit-chart-scroll"><svg viewBox="0 0 ${width} ${height}" width="${width}" height="${height}">
+    <defs>${gradients}</defs>
+    <rect x="0" y="0" width="${width}" height="${height}" rx="18" fill="rgba(1,4,9,.18)"/>
+    ${grid}
+    <line x1="${padL}" y1="${zeroY}" x2="${width-padR}" y2="${zeroY}" stroke="rgba(230,237,243,.38)" />
+    ${bars}
+  </svg></div></div>
+  <div class="profit-chart-legend">${legend}<span style="background:transparent;border:0;color:var(--muted2)">柱顶为整数净利润，悬停可看收益/损耗/返佣。</span></div>`;
+}
+function renderProfitWalletTable(data){
+  const tbody=document.querySelector("#profit-wallet-table tbody"),empty=$("#profit-empty");
+  if(!tbody||!empty)return;
+  const wallets=data?.wallets||[];
+  if(wallets.length===0){tbody.innerHTML="";empty.style.display="block";return}
+  empty.style.display="none";
+  tbody.innerHTML=wallets.map(w=>{
+    const t=w.totals||{};
+    const activeMonths=(w.months||[]).filter(m=>Number(m.loss||0)||Number(m.rebate||0)||Number(m.income||0));
+    const maxAbs=Math.max(1,...activeMonths.map(m=>Math.abs(profitNumber(m.netProfit))));
+    const details=activeMonths.map(m=>`<div class="profit-month-pill"><strong>${escapeHtml(m.month)}</strong><div class="profit-month-bar"><span style="width:${Math.max(4,Math.abs(profitNumber(m.netProfit))/maxAbs*100)}%;background:${profitNumber(m.netProfit)>=0?'linear-gradient(90deg,var(--pri),var(--success))':'linear-gradient(90deg,var(--danger),var(--warning))'}"></span></div><span style="${profitClass(m.netProfit)}">${profitMoney(m.netProfit)}</span></div>`).join("");
+    return `<tr>
+      <td><div style="font-weight:700;color:var(--pri)">${escapeHtml(w.label||w.walletKey||"-")}</div><div class="mono">${escapeHtml((w.address||"").slice(0,10))}...</div></td>
+      <td>${profitMoney(t.loss)}</td>
+      <td>${profitMoney(t.rebate)}</td>
+      <td>${profitMoney(t.actualLoss)}</td>
+      <td>${profitMoney(t.income)}</td>
+      <td style="${profitClass(t.netProfit)};font-weight:700">${profitMoney(t.netProfit)}</td>
+      <td>${details?`<div class="profit-month-list">${details}</div>`:"-"}</td>
+    </tr>`;
+  }).join("");
+}
+function renderProfitAdjustmentWalletSelect(){
+  const sel=$("#profit-adj-wallet-key");
+  if(!sel)return;
+  const current=sel.value;
+  const wallets=state.walletProfit?.wallets||[];
+  sel.innerHTML='<option value="">选择钱包</option>';
+  for(const w of wallets){
+    const key=w.walletKey||w.label||"";
+    if(!key)continue;
+    const op=document.createElement("option");
+    op.value=key;
+    op.textContent=`${w.label||key} (${key})`;
+    sel.appendChild(op);
+  }
+  if(current&&[...sel.options].some(op=>op.value===current))sel.value=current;
+}
+function renderProfitAdjustments(){
+  const box=$("#profit-adjustments");
+  if(!box)return;
+  const rows=state.walletProfitAdjustments||[];
+  if(rows.length===0){box.innerHTML='<div class="empty-state" style="padding:18px">暂无手动修正。</div>';return}
+  box.innerHTML=rows.map(row=>`<div class="profit-adjust-row">
+    <div><strong>${escapeHtml(row.walletKey)} / ${escapeHtml(row.month)}</strong><small>损耗 ${profitMoney(row.lossAdjustment)} · 返佣 ${profitMoney(row.rebateAdjustment)} · 收益 ${profitMoney(row.incomeAdjustment)}${row.note?` · ${escapeHtml(row.note)}`:""}</small></div>
+    <button type="button" class="btn btn-danger btn-sm" data-delete-adjustment="${escapeHtml(row.adjustmentId)}">删除</button>
+  </div>`).join("");
+}
+function renderWalletProfitData(data,{fromCache=false}={}){
+  if(!data)return false;
+  state.walletProfit=data;
+  renderProfitOverall(data);
+  renderProfitChart(data);
+  renderProfitWalletTable(data);
+  renderProfitAdjustmentWalletSelect();
+  renderProfitAdjustments();
+  const result=$("#profit-result");
+  if(result&&(fromCache||data.fromCache)){
+    const cachedAt=data.cachedAt?`（缓存时间：${new Date(data.cachedAt).toLocaleString()}）`:"";
+    result.textContent=`已显示后端缓存的盈亏数据${cachedAt}。需要重读飞书时再点“刷新盈亏”。`;
+  }
+  return true;
+}
+async function loadProfitAdjustments(){
+  const res=await fetch("/api/stats/wallet-profit/adjustments");
+  if(!res.ok)return;
+  const data=await res.json();
+  state.walletProfitAdjustments=Array.isArray(data)?data:[];
+  safeSetStorageItem(STORAGE_KEYS.profitAdjustments,JSON.stringify(state.walletProfitAdjustments));
+  renderProfitAdjustments();
+}
+async function addProfitAdjustment(){
+  const result=$("#profit-result");
+  const walletKey=$("#profit-adj-wallet-key")?.value||"";
+  const month=$("#profit-adj-month")?.value||"";
+  const loss=profitNumber($("#profit-adj-loss")?.value);
+  const rebate=profitNumber($("#profit-adj-rebate")?.value);
+  const income=profitNumber($("#profit-adj-income")?.value);
+  const note=$("#profit-adj-note")?.value?.trim()||"";
+  if(!walletKey||!month){if(result)result.textContent="请先选择钱包和月份。";return}
+  if(!loss&&!rebate&&!income){if(result)result.textContent="请至少填写一个修正金额。";return}
+  const payload={walletKey,month,lossAdjustment:loss,rebateAdjustment:rebate,incomeAdjustment:income,note};
+  const res=await fetch("/api/stats/wallet-profit/adjustments",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+  const text=await res.text();
+  if(!res.ok){if(result)result.textContent=`保存修正失败：${parseApiError(text)}`;return}
+  ["#profit-adj-loss","#profit-adj-rebate","#profit-adj-income","#profit-adj-note"].forEach(sel=>{const el=$(sel);if(el)el.value=""});
+  await loadProfitAdjustments();
+  if(result)result.textContent="修正已保存，后端盈亏缓存已失效。点击“刷新盈亏”后会重新读取飞书并替换缓存。";
+}
+async function deleteProfitAdjustment(id){
+  if(!id||!window.confirm("确认删除这条盈亏修正吗？"))return;
+  const result=$("#profit-result");
+  const res=await fetch(`/api/stats/wallet-profit/adjustments/${encodeURIComponent(id)}`,{method:"DELETE"});
+  const text=await res.text();
+  if(!res.ok){if(result)result.textContent=`删除修正失败：${parseApiError(text)}`;return}
+  await loadProfitAdjustments();
+  if(result)result.textContent="修正已删除，后端盈亏缓存已失效。点击“刷新盈亏”后会重新读取飞书并替换缓存。";
+}
+function walletProfitJobStatusText(job){
+  const percent=Number(job?.progressPercent||0);
+  const message=job?.progressMessage||"后台刷新中。";
+  return `后台刷新盈亏：${message} ${percent}%`;
+}
+async function pollWalletProfitRefreshJob(jobId,{useDateFilter=false,queryString=""}={}){
+  const result=$("#profit-result");
+  if(!jobId)return false;
+  for(;;){
+    const res=await fetch(`/api/stats/wallet-profit/refresh-jobs/${encodeURIComponent(jobId)}`);
+    const text=await res.text();
+    if(!res.ok){
+      if(result)result.textContent=`刷新任务读取失败：${parseApiError(text)}`;
+      safeRemoveStorageItem?.(STORAGE_KEYS.profitRefreshJob);
+      return false;
+    }
+    const job=JSON.parse(text);
+    if(result)result.textContent=walletProfitJobStatusText(job);
+    if(job.status==="completed"){
+      safeRemoveStorageItem?.(STORAGE_KEYS.profitRefreshJob);
+      await loadWalletProfit({refresh:false,queryString});
+      await loadProfitAdjustments();
+      if(result){
+        const warningText=(job.warnings||[]).length?`，有 ${(job.warnings||[]).length} 个提示`:"";
+        result.textContent=`盈亏数据已刷新并写入后端缓存：${useDateFilter?"已按日期筛选":"已读取全部月份"}${warningText}。`;
+      }
+      return true;
+    }
+    if(job.status==="failed"){
+      safeRemoveStorageItem?.(STORAGE_KEYS.profitRefreshJob);
+      if(result)result.textContent=`盈亏刷新失败：${localizeErrorMessage(job.errorMessage||job.progressMessage)||"未知错误"}`;
+      return false;
+    }
+    await new Promise(resolve=>setTimeout(resolve,2500));
+  }
+}
+async function startWalletProfitRefresh(qs,{useDateFilter=false}={}){
+  const result=$("#profit-result");
+  if(result)result.textContent="正在创建后台刷新任务...";
+  const res=await fetch(`/api/stats/wallet-profit/refresh-jobs?${qs.toString()}`,{method:"POST"});
+  const text=await res.text();
+  if(!res.ok){
+    if(result)result.textContent=`刷新任务创建失败：${parseApiError(text)}`;
+    return false;
+  }
+  const job=JSON.parse(text);
+  safeSetStorageItem(STORAGE_KEYS.profitRefreshJob,JSON.stringify({jobId:job.jobId||"",queryString:qs.toString(),useDateFilter}));
+  return pollWalletProfitRefreshJob(job.jobId,{useDateFilter,queryString:qs.toString()});
+}
+async function loadWalletProfit({refresh=false,queryString=""}={}){
+  const result=$("#profit-result");
+  let qs;
+  let useDateFilter;
+  if(queryString){
+    qs=new URLSearchParams(queryString);
+    useDateFilter=qs.has("startDate")||qs.has("endDate");
+  }else{
+    saveProfitSettings();
+    qs=new URLSearchParams();
+    const start=$("#profit-start-date")?.value?.trim()||"";
+    const end=$("#profit-end-date")?.value?.trim()||"";
+    const rebateTable=$("#profit-rebate-table")?.value||"";
+    useDateFilter=!!$("#profit-use-date-filter")?.checked;
+    if(useDateFilter&&start)qs.set("startDate",start);
+    if(useDateFilter&&end)qs.set("endDate",end);
+    if(rebateTable)qs.set("rebateTableId",rebateTable);
+    qs.set("wearField",$("#profit-wear-field")?.value?.trim()||"磨损");
+    qs.set("incomeField",$("#profit-income-field")?.value?.trim()||"Boost领取奖励");
+    qs.set("rebateAmountField",$("#profit-rebate-amount-field")?.value?.trim()||"金额");
+    qs.set("rebateWalletField",$("#profit-rebate-wallet-field")?.value?.trim()||"多选");
+  }
+  if(refresh)return startWalletProfitRefresh(qs,{useDateFilter});
+  if(result)result.textContent="正在读取后端缓存...";
+  try{
+    const res=await fetch(`/api/stats/wallet-profit?${qs.toString()}`);
+    const text=await res.text();
+    if(!res.ok){
+      if(result){
+        const msg=parseApiError(text);
+        result.textContent=!refresh&&res.status===404
+          ?"后端暂无盈亏缓存。点击“刷新盈亏”后会读取飞书并把结果存到后端缓存。"
+          :`读取失败：${msg}`;
+      }
+      return false;
+    }
+    const data=JSON.parse(text);
+    renderWalletProfitData(data,{fromCache:!refresh});
+    if(result&&!data.fromCache){
+      result.textContent=(data.warnings||[]).length?`已完成并写入后端缓存，但有 ${data.warnings.length} 个提示：${data.warnings.slice(0,3).join("；")}`:`盈亏数据已刷新并写入后端缓存：${useDateFilter?"已按日期筛选":"已读取全部月份"}。`;
+    }
+    return true;
+  }catch(err){if(result)result.textContent=`读取失败：${String(err)}`;return false}
+}
+loadProfitSettings();
+renderProfitRebateTableSelect();
+feishuTablesReady.finally(()=>loadWalletProfit({refresh:false}));
+const activeProfitRefreshJob=safeGetStorageItem(STORAGE_KEYS.profitRefreshJob);
+if(activeProfitRefreshJob){
+  let activeJob={jobId:activeProfitRefreshJob,queryString:"",useDateFilter:false};
+  try{
+    const parsed=JSON.parse(activeProfitRefreshJob);
+    if(parsed&&typeof parsed==="object")activeJob={jobId:parsed.jobId||"",queryString:parsed.queryString||"",useDateFilter:!!parsed.useDateFilter};
+  }catch(_){}
+  if(activeJob.jobId)pollWalletProfitRefreshJob(activeJob.jobId,{useDateFilter:activeJob.useDateFilter,queryString:activeJob.queryString}).catch(err=>{const result=$("#profit-result");if(result)result.textContent=`盈亏后台刷新轮询失败：${String(err)}`});
+}
+initDatePicker($("#profit-start-date"),saveProfitSettings);
+initDatePicker($("#profit-end-date"),saveProfitSettings);
+if($("#profit-adj-month")&&!$("#profit-adj-month").value)$("#profit-adj-month").value=defaultProfitEndDate().slice(0,7);
+$("#profit-refresh-btn")?.addEventListener("click",async()=>{await loadWalletProfit({refresh:true});await loadProfitAdjustments()});
+$("#profit-adj-add-btn")?.addEventListener("click",addProfitAdjustment);
+$("#profit-adjustments")?.addEventListener("click",(event)=>{const btn=event.target.closest("[data-delete-adjustment]");if(btn)deleteProfitAdjustment(btn.dataset.deleteAdjustment)});
+$("#profit-use-date-filter")?.addEventListener("change",()=>{applyProfitDateFilterUi();saveProfitSettings()});
+["#profit-start-date","#profit-end-date","#profit-rebate-table","#profit-wear-field","#profit-income-field","#profit-rebate-amount-field","#profit-rebate-wallet-field"].forEach(sel=>$(sel)?.addEventListener("change",saveProfitSettings));
+try{const cachedAdjustments=JSON.parse(safeGetStorageItem(STORAGE_KEYS.profitAdjustments)||"[]");if(Array.isArray(cachedAdjustments)){state.walletProfitAdjustments=cachedAdjustments;renderProfitAdjustments()}}catch(_){}
+loadProfitAdjustments();
+
+// === Dashboard ===
+const DASHBOARD_MIN_AVG_KEY="okx_dashboard_min_daily_average";
+function getDashboardMinDailyAverage(){
+  const raw=$("#dashboard-min-daily-average")?.value?.trim()||"";
+  const value=Number(raw);
+  return Number.isFinite(value)&&value>0?value:0;
+}
+function saveDashboardSettings(){
+  localStorage.setItem(DASHBOARD_MIN_AVG_KEY,String(getDashboardMinDailyAverage()));
+}
+async function loadDashboardSettings(){
+  const saved=localStorage.getItem(DASHBOARD_MIN_AVG_KEY);
+  if(saved!==null&&$("#dashboard-min-daily-average"))$("#dashboard-min-daily-average").value=saved;
+  const result=$("#dashboard-settings-result");
+  try{
+    const res=await fetch("/api/stats/settings/dashboard");
+    if(!res.ok)return false;
+    const data=await res.json();
+    const value=Number(data.minDailyAverage||0);
+    const input=$("#dashboard-min-daily-average");
+    if(input)input.value=value>0?String(value):"";
+    localStorage.setItem(DASHBOARD_MIN_AVG_KEY,String(value));
+    if(result){
+      const savedAt=data.updatedAt?`，保存时间：${new Date(data.updatedAt).toLocaleString()}`:"";
+      result.textContent=`当前后端低保值：${value>0?"$"+value.toLocaleString():"未设置"}${savedAt}`;
+    }
+    return true;
+  }catch(err){
+    if(result)result.textContent=`后端设置读取失败：${String(err)}`;
+    return false;
+  }
+}
+async function saveDashboardSettingsToBackend(){
+  const btn=$("#dashboard-save-settings-btn");
+  const result=$("#dashboard-settings-result");
+  saveDashboardSettings();
+  if(btn)btn.disabled=true;
+  if(result)result.textContent="正在保存到后端...";
+  try{
+    const minDailyAverage=getDashboardMinDailyAverage();
+    const res=await fetch("/api/stats/settings/dashboard",{
+      method:"PUT",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({minDailyAverage})
+    });
+    const text=await res.text();
+    if(!res.ok){
+      if(result)result.textContent=`保存失败：${parseApiError(text)}`;
+      return false;
+    }
+    const data=JSON.parse(text);
+    const value=Number(data.minDailyAverage||0);
+    if(result)result.textContent=`已保存到后端：${value>0?"$"+value.toLocaleString():"未设置"}。后台自动提醒会使用这个值。`;
+    await loadDashboard();
+    return true;
+  }catch(err){
+    if(result)result.textContent=`保存失败：${String(err)}`;
+    return false;
+  }finally{
+    if(btn)btn.disabled=false;
+  }
+}
+function dashboardStatsUrl(path){
+  const minDailyAverage=getDashboardMinDailyAverage();
+  const qs=new URLSearchParams();
+  if(minDailyAverage>0)qs.set("minDailyAverage",String(minDailyAverage));
+  const query=qs.toString();
+  return query?`${path}?${query}`:path;
+}
+async function loadDashboard(){
+  try{
+    const res=await fetch(dashboardStatsUrl("/api/stats/boost-average"));
+    if(!res.ok)return;
+    const data=await res.json();
+
+    $("#kpi-total-vol").textContent=`$${data.overall.totalBoostVolume.toLocaleString()}`;
+    $("#kpi-daily-avg").textContent=`$${data.overall.dailyAverage.toLocaleString()}`;
+    $("#kpi-min-daily-avg").textContent=data.minDailyAverage?`$${data.minDailyAverage.toLocaleString()}`:"--";
+
+    const container=$("#dashboard-wallets");
+    if(!data.wallets||data.wallets.length===0){
+      container.innerHTML='<div class="empty-state">地址簿中没有钱包数据</div>';
+      return;
+    }
+
+    container.innerHTML=data.wallets.map(w=>{
+      const label=w.label||w.address.slice(0,10);
+      const addrShort=w.address.slice(0,6)+"..."+w.address.slice(-4);
+      const vol=w.totalBoostVolume?`$${w.totalBoostVolume.toLocaleString()}`:"--";
+      const avg=w.dailyAverage?`$${w.dailyAverage.toLocaleString()}`:"--";
+      const gap=w.averageGapToWatermark===null||w.averageGapToWatermark===undefined?"--":`$${w.averageGapToWatermark.toLocaleString()}`;
+      const lastDate=w.lastTradeDate||"无记录";
+      const hasWatermark=Number(data.minDailyAverage||0)>0;
+
+      let dueHtml="";
+      if(w.daysRemaining===null){
+        dueHtml='<span class="wallet-stat-due ok">未设置低保 / 无数据</span>';
+      }else if(w.daysRemaining<=0){
+        dueHtml=`<span class="wallet-stat-due overdue">${hasWatermark?"已低于低保":"今天该刷了"}</span>`;
+      }else if(w.daysRemaining<=2){
+        dueHtml=`<span class="wallet-stat-due soon">还剩 ${w.daysRemaining} 天</span>`;
+      }else{
+        dueHtml=`<span class="wallet-stat-due ok">还剩 ${w.daysRemaining} 天</span>`;
+      }
+
+      return `<div class="wallet-stat-card">
+        <div class="wallet-stat-info">
+          <div class="wallet-stat-name">${label}</div>
+          <div class="wallet-stat-addr">${addrShort}</div>
+        </div>
+        <div class="wallet-stat-metrics">
+          <div class="wallet-stat-metric"><span class="metric-val">${vol}</span><span class="metric-label">10天总量</span></div>
+          <div class="wallet-stat-metric"><span class="metric-val">${avg}</span><span class="metric-label">日均</span></div>
+          <div class="wallet-stat-metric"><span class="metric-val">${gap}</span><span class="metric-label">距低保差值</span></div>
+          <div class="wallet-stat-metric"><span class="metric-val">${lastDate}</span><span class="metric-label">上次刷量 (UTC)</span></div>
+          <div class="wallet-stat-metric"><span class="metric-val">${w.nextDueDate||"--"}</span><span class="metric-label">${hasWatermark?"低于低保日期":"下次刷量"} (UTC)</span></div>
+        </div>
+        ${dueHtml}
+      </div>`;
+    }).join("");
+  }catch(e){console.error("loadDashboard error:",e)}
+}
+
+$("#trigger-reminder-btn").addEventListener("click",async function(){
+  const btn=this;
+  const result=$("#reminder-result");
+  btn.disabled=true;
+  result.textContent="正在发送提醒...";
+  try{
+    const res=await fetch(dashboardStatsUrl("/api/stats/trigger-reminder"),{method:"POST"});
+    if(res.ok){result.textContent="提醒已发送（如已配置 Webhook）"}
+    else{result.textContent="发送失败"}
+  }catch(e){result.textContent=`错误: ${e}`}
+  finally{btn.disabled=false}
+});
+loadDashboardSettings().then(()=>loadDashboard());
+$("#dashboard-min-daily-average")?.addEventListener("change",()=>{saveDashboardSettings();loadDashboard()});
+$("#dashboard-refresh-btn")?.addEventListener("click",()=>{saveDashboardSettings();loadDashboard()});
+$("#dashboard-save-settings-btn")?.addEventListener("click",saveDashboardSettingsToBackend);
+
+// Load dashboard when panel becomes active
+const origNavClick=document.querySelectorAll(".nav-item");
+origNavClick.forEach(item=>{
+  item.addEventListener("click",function(){
+    if(this.dataset.panel==="dashboard")loadDashboard();
+    if(this.dataset.panel==="rewards")loadRewards().catch((err)=>{$("#reward-result").textContent=`加载失败：${String(err)}`});
+    if(this.dataset.panel==="copysell")loadCopySellData().catch((err)=>{$("#copy-task-result").textContent=`加载失败：${String(err)}`});
+    if(this.dataset.panel==="profit"&&!state.walletProfit){
+      loadWalletProfit({refresh:false});
+    }
+  });
+});
 </script>
 </body>
 </html>

@@ -17,6 +17,8 @@ _progress_store: dict[str, ProgressSnapshot] = {}
 _progress_lock = Lock()
 _cancel_requests: set[str] = set()
 _cancel_lock = Lock()
+_active_tasks: set[str] = set()
+_active_lock = Lock()
 
 
 def _now() -> datetime:
@@ -58,9 +60,25 @@ def clear_task_cancel(task_id: str) -> None:
         _cancel_requests.discard(task_id)
 
 
+def mark_task_active(task_id: str) -> None:
+    with _active_lock:
+        _active_tasks.add(task_id)
+
+
+def mark_task_inactive(task_id: str) -> None:
+    with _active_lock:
+        _active_tasks.discard(task_id)
+
+
+def is_task_active(task_id: str) -> bool:
+    with _active_lock:
+        return task_id in _active_tasks
+
+
 def clear_task_runtime_state(task_id: str) -> None:
     clear_task_progress(task_id)
     clear_task_cancel(task_id)
+    mark_task_inactive(task_id)
 
 
 def get_task_progress(task_id: str, *, status: str) -> ProgressSnapshot:

@@ -5,3 +5,8 @@ pydantic==2.10.6
 requests==2.32.3
 pytest==8.3.4
 httpx==0.28.1
+apscheduler==3.10.4
+cryptography==42.0.8
+eth-account==0.11.3
+web3==6.20.2
+websockets==16.0

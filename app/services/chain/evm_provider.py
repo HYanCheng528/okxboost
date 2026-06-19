@@ -18,6 +18,10 @@ from .types import ParsedTx
 TRANSFER_TOPIC = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
 DECIMALS_SELECTOR = "0x313ce567"
 LOG_CHUNK_BLOCKS = 20000
+CHAIN_LOG_CHUNK_BLOCKS = {"xlayer": 500}
+STABLE_BASE_TOKENS = {"usdt", "usdt0", "usdc", "dai", "busd"}
+DEPOSIT_TOPIC = "0xe1fffcc4923d04b559f4d29a8bfc6cda04eb5b0d3c460751c2402c5c5cc9109c"
+WITHDRAWAL_TOPIC = "0x7fcf532c15f0a6db0bd6d0e038bea71d30d808c7d98cb3bf7268a95bf5081b65"
 
 
 @dataclass(slots=True)
@@ -42,6 +46,10 @@ def _is_rate_limited_error(error_obj: object) -> bool:
     text = str(error_obj).lower()
     tokens = ("limit exceeded", "rate limit", "too many", "-32005", "request limit")
     return any(token in text for token in tokens)
+
+
+def _is_stable_base_token(symbol: str) -> bool:
+    return symbol.lower() in STABLE_BASE_TOKENS
 
 
 class EvmExplorerProvider(ChainProvider):
@@ -112,6 +120,7 @@ class EvmExplorerProvider(ChainProvider):
                     receipt=receipt,
                     token_address=token_address,
                     base_address=base_address,
+                    base_token=base_token,
                     token_decimals=token_decimals,
                     base_decimals=base_decimals,
                     db=db,
@@ -302,8 +311,9 @@ class EvmExplorerProvider(ChainProvider):
 
         logs: list[dict[str, Any]] = []
         block = from_block
+        chunk_blocks = CHAIN_LOG_CHUNK_BLOCKS.get(config.name.lower(), LOG_CHUNK_BLOCKS)
         while block <= to_block:
-            chunk_end = min(block + LOG_CHUNK_BLOCKS - 1, to_block)
+            chunk_end = min(block + chunk_blocks - 1, to_block)
             logs.extend(
                 self._fetch_logs_chunk(
                     config=config,
@@ -314,6 +324,8 @@ class EvmExplorerProvider(ChainProvider):
                 )
             )
             block = chunk_end + 1
+            if config.name.lower() == "xlayer" and block <= to_block:
+                time.sleep(0.15)
         return logs
 
     def _fetch_logs_chunk(
@@ -455,6 +467,28 @@ class EvmExplorerProvider(ChainProvider):
         response = self._rpc_call(config, payload)
         return response.get("result")
 
+    def _fetch_transaction_value(self, config: ChainConfig, tx_hash: str) -> Decimal:
+        payload = {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "eth_getTransactionByHash",
+            "params": [tx_hash],
+        }
+        result = self._rpc_call(config, payload).get("result")
+        if not isinstance(result, dict):
+            return Decimal("0")
+        return Decimal(_hex_to_int(result.get("value"))) / Decimal(10**18)
+
+    def _get_native_balance_at_block(self, config: ChainConfig, wallet: str, block: int) -> Decimal:
+        payload = {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "eth_getBalance",
+            "params": [wallet, hex(block)],
+        }
+        result = self._rpc_call(config, payload).get("result")
+        return Decimal(_hex_to_int(result)) / Decimal(10**18)
+
     def _parse_receipt(
         self,
         *,
@@ -465,6 +499,7 @@ class EvmExplorerProvider(ChainProvider):
         receipt: dict[str, Any],
         token_address: str,
         base_address: str,
+        base_token: str,
         token_decimals: int,
         base_decimals: int,
         db: Session,
@@ -473,22 +508,47 @@ class EvmExplorerProvider(ChainProvider):
         usdt_in = Decimal("0")
         token_in = Decimal("0")
         token_out = Decimal("0")
+        base_log_amounts: list[Decimal] = []
+        native_deposit_amount = Decimal("0")
+        native_withdrawal_amount = Decimal("0")
+
+        wrapped_native_address = ""
+        if config.native_symbol.upper() in ("BNB", "OKB", "ETH"):
+            native_tokens = config.base_tokens or {}
+            for sym, addr in native_tokens.items():
+                if sym.upper() == config.native_symbol.upper():
+                    wrapped_native_address = addr.lower()
+                    break
 
         logs = receipt.get("logs", [])
         for log in logs:
             topics = log.get("topics") or []
-            if len(topics) < 3:
+            if not topics:
                 continue
-            if str(topics[0]).lower() != TRANSFER_TOPIC:
+            topic0 = str(topics[0]).lower()
+            contract = str(log.get("address", "")).lower()
+            data_hex = str(log.get("data", "0x0"))
+
+            if topic0 == DEPOSIT_TOPIC and contract == (wrapped_native_address or base_address):
+                native_deposit_amount += Decimal(_hex_to_int(data_hex)) / Decimal(10**18)
+                continue
+            if topic0 == WITHDRAWAL_TOPIC and contract == (wrapped_native_address or base_address):
+                native_withdrawal_amount += Decimal(_hex_to_int(data_hex)) / Decimal(10**18)
+                continue
+
+            if topic0 != TRANSFER_TOPIC:
+                continue
+            if len(topics) < 3:
                 continue
 
             from_addr = _topic_to_address(str(topics[1]))
             to_addr = _topic_to_address(str(topics[2]))
-            amount_raw = _hex_to_int(str(log.get("data", "0x0")))
+            amount_raw = _hex_to_int(data_hex)
             contract = str(log.get("address", "")).lower()
 
             if contract == base_address:
                 amount = Decimal(amount_raw) / (Decimal(10) ** base_decimals)
+                base_log_amounts.append(amount)
                 if from_addr == wallet:
                     usdt_out += amount
                 if to_addr == wallet:
@@ -500,6 +560,79 @@ class EvmExplorerProvider(ChainProvider):
                 if from_addr == wallet:
                     token_out += amount
 
+        # Fallback for non-stable base tokens (BNB/OKB):
+        # When user swaps native token, WBNB transfers don't involve wallet directly
+        if not _is_stable_base_token(base_token) and usdt_out == 0 and usdt_in == 0:
+            if token_in > 0 and token_out == 0:
+                # BUY: user sent native token -> got target token
+                # Use tx.value as the actual amount spent (includes router fee)
+                native_value = Decimal("0")
+                if base_token.upper() == config.native_symbol.upper():
+                    try:
+                        native_value = self._fetch_transaction_value(config, tx_hash)
+                    except Exception:
+                        native_value = Decimal("0")
+                if native_value > 0:
+                    usdt_out = native_value
+                elif native_deposit_amount > 0:
+                    usdt_out = native_deposit_amount
+                else:
+                    usdt_out = max(base_log_amounts, default=Decimal("0"))
+            elif token_out > 0 and token_in == 0:
+                # SELL: user sent target token -> got native token
+                # Use balance diff to get actual received amount (after router fee)
+                block_number = _hex_to_int(receipt.get("blockNumber"))
+                actual_received = Decimal("0")
+                if block_number > 0 and base_token.upper() == config.native_symbol.upper():
+                    try:
+                        bal_before = self._get_native_balance_at_block(config, wallet, block_number - 1)
+                        bal_after = self._get_native_balance_at_block(config, wallet, block_number)
+                        balance_change = bal_after - bal_before
+                        # balance_change = received_native - gas, so actual received = change + gas
+                        gas_used_raw = _hex_to_int(receipt.get("gasUsed"))
+                        eff_gas_price = receipt.get("effectiveGasPrice") or receipt.get("gasPrice")
+                        gas_price_raw = _hex_to_int(eff_gas_price)
+                        tx_gas = Decimal(gas_used_raw * gas_price_raw) / Decimal(10**18)
+                        actual_received = balance_change + tx_gas
+                    except Exception:
+                        actual_received = Decimal("0")
+                if actual_received > 0:
+                    usdt_in = actual_received
+                elif native_withdrawal_amount > 0:
+                    usdt_in = native_withdrawal_amount
+                else:
+                    usdt_in = max(base_log_amounts, default=Decimal("0"))
+
+        # Fallback for stable base tokens (USDT/USDC):
+        # If user actually swapped with native token but task has stable base_token,
+        # detect via Deposit/Withdrawal events and use native token amount
+        if _is_stable_base_token(base_token) and usdt_out == 0 and usdt_in == 0:
+            if (token_in > 0 or token_out > 0) and (native_deposit_amount > 0 or native_withdrawal_amount > 0):
+                native_price = self.price_service.get_price_usd(db, config.native_symbol, timestamp)
+                if native_price is not None:
+                    if token_in > 0 and token_out == 0 and native_deposit_amount > 0:
+                        usdt_out = native_deposit_amount * native_price
+                    elif token_out > 0 and token_in == 0 and native_withdrawal_amount > 0:
+                        # Use balance diff for accurate received amount
+                        block_number = _hex_to_int(receipt.get("blockNumber"))
+                        actual_received = Decimal("0")
+                        if block_number > 0:
+                            try:
+                                bal_before = self._get_native_balance_at_block(config, wallet, block_number - 1)
+                                bal_after = self._get_native_balance_at_block(config, wallet, block_number)
+                                balance_change = bal_after - bal_before
+                                gas_used_raw = _hex_to_int(receipt.get("gasUsed"))
+                                eff_gas_price = receipt.get("effectiveGasPrice") or receipt.get("gasPrice")
+                                gas_price_raw = _hex_to_int(eff_gas_price)
+                                tx_gas = Decimal(gas_used_raw * gas_price_raw) / Decimal(10**18)
+                                actual_received = balance_change + tx_gas
+                            except Exception:
+                                actual_received = Decimal("0")
+                        if actual_received > 0:
+                            usdt_in = actual_received * native_price
+                        else:
+                            usdt_in = native_withdrawal_amount * native_price
+
         if usdt_out == 0 and usdt_in == 0 and token_in == 0 and token_out == 0:
             return None
 
@@ -510,6 +643,13 @@ class EvmExplorerProvider(ChainProvider):
 
         native_price = self.price_service.get_price_usd(db, config.native_symbol, timestamp)
         gas_usd = gas_native * native_price if native_price is not None else None
+
+        # If base_token is not a stablecoin (e.g. BNB/WBNB), convert to USD
+        if not _is_stable_base_token(base_token):
+            base_price = self.price_service.get_price_usd(db, base_token.upper(), timestamp)
+            if base_price is not None:
+                usdt_out = usdt_out * base_price
+                usdt_in = usdt_in * base_price
 
         return ParsedTx(
             chain=config.name,

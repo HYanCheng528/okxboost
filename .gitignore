@@ -5,3 +5,13 @@ __pycache__/
 okx_volume_stats.db
 test_okx_volume_stats.db
 .env
+data/robot_wallets.enc.json
+data/robot_wallets_plain*.csv
+data/robot_wallets_plain*.json
+server.log
+tx_receipt*.json
+deploy_*.tar.gz
+CODEX_*.md
+PLAN_TODO_CONTEXT.md
+.codepilot-uploads/
+=

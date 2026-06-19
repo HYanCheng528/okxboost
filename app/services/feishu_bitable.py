@@ -46,6 +46,17 @@ class FeishuBitableService:
         records = [{"fields": self._build_fields(item, field_mapping)} for item in cycles]
         return self._batch_create_records(table_id=table_key, records=records)
 
+    def append_raw_records(self, *, table_id: str, records: list[dict[str, object]]) -> int:
+        table_key = table_id.strip()
+        if not table_key:
+            raise ValueError("table_id cannot be empty")
+        if not records:
+            return 0
+        return self._batch_create_records(
+            table_id=table_key,
+            records=[{"fields": item} for item in records],
+        )
+
     def list_tables(self) -> list[dict[str, str]]:
         app_token = (self.settings.feishu_app_token or "").strip()
         if not app_token:
@@ -95,6 +106,105 @@ class FeishuBitableService:
             page_token = next_token
 
         return items
+
+    def list_records(self, *, table_id: str) -> list[dict[str, object]]:
+        app_token = (self.settings.feishu_app_token or "").strip()
+        table_key = table_id.strip()
+        if not app_token:
+            raise ValueError("Missing FEISHU_APP_TOKEN")
+        if not table_key:
+            raise ValueError("table_id cannot be empty")
+
+        endpoint = f"{API_BASE}/apps/{app_token}/tables/{table_key}/records"
+        token = self._get_tenant_access_token()
+        headers = {"Authorization": f"Bearer {token}"}
+
+        records: list[dict[str, object]] = []
+        page_token: str | None = None
+        while True:
+            params: dict[str, object] = {"page_size": 500}
+            if page_token:
+                params["page_token"] = page_token
+            try:
+                response = requests.get(
+                    endpoint,
+                    headers=headers,
+                    params=params,
+                    timeout=self.settings.request_timeout_seconds,
+                )
+                response.raise_for_status()
+            except requests.RequestException as exc:
+                raise RuntimeError(f"Feishu list records request failed: {exc}") from exc
+
+            payload = response.json()
+            if int(payload.get("code", -1)) != 0:
+                msg = str(payload.get("msg", "unknown error"))
+                raise RuntimeError(f"Feishu list records failed: {msg}")
+
+            data = payload.get("data") or {}
+            raw_items = data.get("items") or []
+            for item in raw_items:
+                if not isinstance(item, dict):
+                    continue
+                fields = item.get("fields") or {}
+                if isinstance(fields, dict):
+                    records.append(fields)
+
+            if not bool(data.get("has_more")):
+                break
+            next_token = str(data.get("page_token", "")).strip()
+            if not next_token:
+                break
+            page_token = next_token
+
+        return records
+
+    def list_fields(self, *, table_id: str) -> list[dict[str, object]]:
+        app_token = (self.settings.feishu_app_token or "").strip()
+        table_key = table_id.strip()
+        if not app_token:
+            raise ValueError("Missing FEISHU_APP_TOKEN")
+        if not table_key:
+            raise ValueError("table_id cannot be empty")
+
+        endpoint = f"{API_BASE}/apps/{app_token}/tables/{table_key}/fields"
+        token = self._get_tenant_access_token()
+        headers = {"Authorization": f"Bearer {token}"}
+
+        fields: list[dict[str, object]] = []
+        page_token: str | None = None
+        while True:
+            params: dict[str, object] = {"page_size": 100}
+            if page_token:
+                params["page_token"] = page_token
+            try:
+                response = requests.get(
+                    endpoint,
+                    headers=headers,
+                    params=params,
+                    timeout=self.settings.request_timeout_seconds,
+                )
+                response.raise_for_status()
+            except requests.RequestException as exc:
+                raise RuntimeError(f"Feishu list fields request failed: {exc}") from exc
+
+            payload = response.json()
+            if int(payload.get("code", -1)) != 0:
+                msg = str(payload.get("msg", "unknown error"))
+                raise RuntimeError(f"Feishu list fields failed: {msg}")
+
+            data = payload.get("data") or {}
+            raw_items = data.get("items") or []
+            fields.extend(item for item in raw_items if isinstance(item, dict))
+
+            if not bool(data.get("has_more")):
+                break
+            next_token = str(data.get("page_token", "")).strip()
+            if not next_token:
+                break
+            page_token = next_token
+
+        return fields
 
     def _build_fields(self, cycle: Cycle, field_mapping: FeishuFieldMapping) -> dict[str, object]:
         start_at = ensure_utc(cycle.start_at).astimezone(UTC8)

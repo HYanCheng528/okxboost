@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import re
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -11,21 +10,48 @@ from ..models import SavedWallet, SavedToken
 from ..schemas import (
     SavedWalletCreateRequest,
     SavedWalletResponse,
+    SavedWalletUpdateRequest,
     SavedTokenCreateRequest,
     SavedTokenResponse,
 )
 from ..config import get_settings
+from ..services.address_utils import is_evm_address, is_solana_address
 from ..services.token_resolver import resolve_token_metadata
 
 router = APIRouter(prefix="/api/address-book", tags=["address-book"])
 
-_ADDRESS_RE = re.compile(r"^0x[a-fA-F0-9]{40}$")
-
 
 def _validate_address(address: str) -> str:
-    if not _ADDRESS_RE.match(address):
+    value = address.strip()
+    if is_solana_address(value):
+        return value
+    if not is_evm_address(value):
         raise HTTPException(status_code=400, detail="Invalid address format")
-    return address.lower()
+    return value.lower()
+
+
+def _validate_optional_solana_address(address: str | None) -> str | None:
+    value = (address or "").strip()
+    if not value:
+        return None
+    if not is_solana_address(value):
+        raise HTTPException(status_code=400, detail="Invalid Solana address format")
+    return value
+
+
+def _wallet_response(wallet: SavedWallet) -> SavedWalletResponse:
+    return SavedWalletResponse(
+        walletId=wallet.id,
+        label=wallet.label,
+        address=wallet.address,
+        solanaAddress=wallet.solana_address,
+        feishuTradeTableId=wallet.feishu_trade_table_id,
+        feishuAirdropTableId=wallet.feishu_airdrop_table_id,
+        robotWalletId=wallet.robot_wallet_id,
+        robotWalletAddress=wallet.robot_wallet.address if wallet.robot_wallet else None,
+        robotWalletLabel=wallet.robot_wallet.label if wallet.robot_wallet else None,
+        createdAt=wallet.created_at,
+    )
 
 
 # --- Wallets ---
@@ -34,9 +60,7 @@ def _validate_address(address: str) -> str:
 def list_wallets(db: Session = Depends(get_db)):
     rows = db.query(SavedWallet).order_by(SavedWallet.created_at.desc()).all()
     return [
-        SavedWalletResponse(
-            walletId=r.id, label=r.label, address=r.address, createdAt=r.created_at
-        )
+        _wallet_response(r)
         for r in rows
     ]
 
@@ -44,20 +68,57 @@ def list_wallets(db: Session = Depends(get_db)):
 @router.post("/wallets", response_model=SavedWalletResponse, status_code=201)
 def add_wallet(payload: SavedWalletCreateRequest, db: Session = Depends(get_db)):
     address = _validate_address(payload.address)
+    solana_address = _validate_optional_solana_address(payload.solana_address)
     existing = db.query(SavedWallet).filter(SavedWallet.address == address).first()
     if existing:
         raise HTTPException(status_code=409, detail="Wallet address already saved")
+    if solana_address:
+        existing_sol = db.query(SavedWallet).filter(SavedWallet.solana_address == solana_address).first()
+        if existing_sol:
+            raise HTTPException(status_code=409, detail="Solana address already bound")
     wallet = SavedWallet(
         id=f"wal_{uuid.uuid4().hex[:12]}",
         label=payload.label.strip(),
         address=address,
+        solana_address=solana_address,
+        feishu_trade_table_id=(payload.feishu_trade_table_id or "").strip() or None,
+        feishu_airdrop_table_id=(payload.feishu_airdrop_table_id or "").strip() or None,
     )
     db.add(wallet)
     db.commit()
     db.refresh(wallet)
-    return SavedWalletResponse(
-        walletId=wallet.id, label=wallet.label, address=wallet.address, createdAt=wallet.created_at
-    )
+    return _wallet_response(wallet)
+
+
+@router.patch("/wallets/{wallet_id}", response_model=SavedWalletResponse)
+def update_wallet(wallet_id: str, payload: SavedWalletUpdateRequest, db: Session = Depends(get_db)):
+    wallet = db.query(SavedWallet).filter(SavedWallet.id == wallet_id).first()
+    if not wallet:
+        raise HTTPException(status_code=404, detail="Wallet not found")
+    fields_set = payload.model_fields_set
+    if payload.label is not None:
+        label = payload.label.strip()
+        if not label:
+            raise HTTPException(status_code=400, detail="label cannot be empty")
+        wallet.label = label
+    if "solana_address" in fields_set:
+        solana_address = _validate_optional_solana_address(payload.solana_address)
+        if solana_address:
+            existing_sol = (
+                db.query(SavedWallet)
+                .filter(SavedWallet.solana_address == solana_address, SavedWallet.id != wallet.id)
+                .first()
+            )
+            if existing_sol:
+                raise HTTPException(status_code=409, detail="Solana address already bound")
+        wallet.solana_address = solana_address
+    if "feishu_trade_table_id" in fields_set:
+        wallet.feishu_trade_table_id = (payload.feishu_trade_table_id or "").strip() or None
+    if "feishu_airdrop_table_id" in fields_set:
+        wallet.feishu_airdrop_table_id = (payload.feishu_airdrop_table_id or "").strip() or None
+    db.commit()
+    db.refresh(wallet)
+    return _wallet_response(wallet)
 
 
 @router.delete("/wallets/{wallet_id}", response_model=SavedWalletResponse)
@@ -65,9 +126,7 @@ def delete_wallet(wallet_id: str, db: Session = Depends(get_db)):
     wallet = db.query(SavedWallet).filter(SavedWallet.id == wallet_id).first()
     if not wallet:
         raise HTTPException(status_code=404, detail="Wallet not found")
-    resp = SavedWalletResponse(
-        walletId=wallet.id, label=wallet.label, address=wallet.address, createdAt=wallet.created_at
-    )
+    resp = _wallet_response(wallet)
     db.delete(wallet)
     db.commit()
     return resp
